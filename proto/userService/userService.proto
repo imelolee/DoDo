@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package userService;
+
+option go_package = "./proto;userService";
+
+service UserService {
+	rpc GetTableUserList(Req) returns (UserRsp) {}
+	rpc GetTableUserByUsername(UsernameReq) returns (UserRsp) {}
+	rpc GetTableUserById(IdReq) returns (UserRsp) {}
+	rpc InsertTableUser(UserReq) returns (BoolRsp) {}
+	rpc GetFeedUserById(IdReq) returns (FeedUserRsp) {}
+	rpc GetFeedUserByIdWithCurId(CurIdReq) returns (FeedUserRsp) {}
+
+
+
+
+}
+
+message Req{}
+
+message User{
+	int64 id = 1;
+	string name = 2;
+	string password = 3;
+}
+
+message UserReq{
+	User user = 1;
+}
+
+message UserRsp{
+	User user = 1;
+}
+
+message UsernameReq {
+	string name = 1;
+}
+
+message IdReq {
+	int64 id = 1;
+}
+
+message BoolRsp{
+	bool flag = 1;
+}
+
+message FeedUser{
+	int64 id = 1;
+	string name = 2;
+	int64 followCount = 3;
+	int64 followerCount = 4;
+	bool isFollow	= 5;
+	int64 totalFavorited = 6;
+	int64 favoriteCount = 7;
+}
+
+message FeedUserRsp{
+	int64 status_code = 1;
+	string status_msg = 2;
+	FeedUser user = 3;
+}
+
+message CurIdReq {
+	int64 id = 1;
+	int64 curId = 2;
+}
