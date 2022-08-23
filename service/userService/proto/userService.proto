@@ -5,15 +5,12 @@ package userService;
 option go_package = "./proto;userService";
 
 service UserService {
-	rpc GetTableUserList(Req) returns (UserRsp) {}
+	rpc GetTableUserList(Req) returns (UserListRsp) {}
 	rpc GetTableUserByUsername(UsernameReq) returns (UserRsp) {}
 	rpc GetTableUserById(IdReq) returns (UserRsp) {}
 	rpc InsertTableUser(UserReq) returns (BoolRsp) {}
 	rpc GetFeedUserById(IdReq) returns (FeedUserRsp) {}
 	rpc GetFeedUserByIdWithCurId(CurIdReq) returns (FeedUserRsp) {}
-
-
-
 
 }
 
@@ -28,6 +25,11 @@ message User{
 message UserReq{
 	User user = 1;
 }
+
+message UserListRsp{
+	repeated User user = 1;
+}
+
 
 message UserRsp{
 	User user = 1;

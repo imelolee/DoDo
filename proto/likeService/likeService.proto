@@ -1,0 +1,81 @@
+syntax = "proto3";
+
+package likeService;
+
+option go_package = "./proto;likeService";
+
+service LikeService {
+	rpc IsFavorite(VideoUserReq) returns (BoolRsp) {}
+	rpc FavouriteCount(IdReq) returns (CountRsp) {}
+	rpc TotalFavourite(IdReq) returns (CountRsp) {}
+	rpc FavouriteVideoCount(IdReq) returns (CountRsp) {}
+	rpc FavouriteAction(ActionReq) returns (ActionRsp) {}
+	rpc GetFavouriteList(UserCurReq) returns (FavouriteListRsp) {}
+}
+
+message VideoUserReq{
+	int64 videoId = 1;
+	int64 userId = 2;
+}
+
+message ActionReq{
+	int64 videoId = 1;
+	int64 userId = 2;
+	int64 actionType = 3;
+}
+
+message ActionRsp{
+	int64 status_code = 1;
+	string status_msg = 2;
+}
+
+message UserCurReq{
+	int64 userId = 1;
+	int64 curId = 2;
+}
+
+message BoolRsp{
+	int64 status_code = 1;
+	string status_msg = 2;
+	bool flag = 3;
+}
+
+message IdReq{
+	int64 id = 1;
+}
+
+message CountRsp{
+	int64 status_code = 1;
+	string status_msg = 2;
+	int64 count = 3;
+}
+
+message FavouriteRsp{
+	int64 status_code = 1;
+	string status_msg = 2;
+}
+
+message User{
+	int64 id = 1;
+	string name = 2;
+	int64 follow_count = 3;
+	int64 follower_count = 4;
+	bool is_follow = 5;
+}
+
+message Video{
+	int64 id = 1;
+	User author = 2;
+	string play_url = 3;
+	string cover_url = 4;
+	int64 favorite_count = 5;
+	int64 comment_count = 6;
+	bool is_favorite = 7;
+	string title = 8;
+}
+
+message FavouriteListRsp{
+	int64 status_code = 1;
+	string status_msg = 2;
+	repeated Video video = 3;
+}

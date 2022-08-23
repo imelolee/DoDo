@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/go-micro/plugins/v4/registry/consul"
+	"go-micro.dev/v4/cmd/protoc-gen-micro/plugin/micro"
 	"videoService/handler"
 	"videoService/model"
 	pb "videoService/proto"
@@ -32,7 +33,7 @@ func main() {
 	// Register handler
 	err := pb.RegisterVideoServiceHandler(srv.Server(), new(handler.VideoService))
 	if err != nil {
-		fmt.Println("RegisterUserOrderHandler err: ", err)
+		fmt.Println("RegisterHandler err: ", err)
 		return
 	}
 	// Run service
