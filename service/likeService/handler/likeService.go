@@ -122,6 +122,7 @@ func (e *LikeService) IsFavorite(ctx context.Context, req *pb.VideoUserReq, rsp 
 
 //FavouriteCount 根据videoId获取对应点赞数量;
 func (e *LikeService) FavouriteCount(ctx context.Context, req *pb.IdReq, rsp *pb.CountRsp) error {
+	log.Printf("Received LikeService.FavouriteCount request: %v", req)
 	//将int64 videoId转换为 string strVideoId
 	strVideoId := strconv.FormatInt(req.Id, 10)
 	//step1 如果key:strVideoId存在 则计算集合中userId个数
@@ -201,6 +202,7 @@ func (e *LikeService) FavouriteCount(ctx context.Context, req *pb.IdReq, rsp *pb
 
 // FavouriteAction 根据userId，videoId,actionType对视频进行点赞或者取消赞操作;
 func (e *LikeService) FavouriteAction(ctx context.Context, req *pb.ActionReq, rsp *pb.ActionRsp) error {
+	log.Printf("Received LikeService.FavouriteAction request: %v", req)
 	//将int64 videoId转换为 string strVideoId
 	strUserId := strconv.FormatInt(req.UserId, 10)
 	//将int64 videoId转换为 string strVideoId
@@ -473,13 +475,14 @@ func (e *LikeService) FavouriteAction(ctx context.Context, req *pb.ActionReq, rs
 
 //addFavouriteVideoList 根据videoId,登录用户curId，添加视频对象到点赞列表空间
 func addFavouriteVideoList(videoId int64, curId int64, favoriteVideoList *[]*pb.Video, wg *sync.WaitGroup) {
+
 	defer wg.Done()
 	//调用videoService接口，GetVideo：根据videoId，当前用户id:curId，返回Video类型对象
 
-	microService := InitMicro()
-	microClient := videoService.NewVideoService("videoService", microService.Client())
+	videoMicro := InitMicro()
+	videoClient := videoService.NewVideoService("videoService", videoMicro.Client())
 
-	rsp, _ := microClient.GetVideo(context.TODO(), &videoService.GetVideoReq{
+	rsp, _ := videoClient.GetVideo(context.TODO(), &videoService.GetVideoReq{
 		VideoId: videoId,
 		UserId:  curId,
 	})
@@ -493,9 +496,8 @@ func addFavouriteVideoList(videoId int64, curId int64, favoriteVideoList *[]*pb.
 }
 
 //GetFavouriteList 根据userId，curId(当前用户Id),返回userId的点赞列表;
-//step1：查询Redis LikeUserId(key:strUserId)是否已经加载过此信息，获取集合中全部videoId，并添加到点赞列表集合中;
-//step2：LikeUserId中都没有对应key，维护LikeUserId对应key，同时添加到点赞列表集合中;
 func (e *LikeService) GetFavouriteList(ctx context.Context, req *pb.UserCurReq, rsp *pb.FavouriteListRsp) error {
+	log.Printf("Received LikeService.GetFavouriteList request: %v", req)
 	//将int64 userId转换为 string strUserId
 	strUserId := strconv.FormatInt(req.UserId, 10)
 	//step1:查询Redis LikeUserId,如果key：strUserId存在,则获取集合中全部videoId
@@ -612,6 +614,7 @@ func addVideoLikeCount(videoId int64, videoLikeCountList *[]int64, wg *sync.Wait
 
 //TotalFavourite 根据userId获取这个用户总共被点赞数量
 func (e *LikeService) TotalFavourite(ctx context.Context, req *pb.IdReq, rsp *pb.CountRsp) error {
+	log.Printf("Received LikeService.TotalFavourite request: %v", req)
 	//根据userId获取这个用户的发布视频列表信息
 	microService := InitMicro()
 	microClient := videoService.NewVideoService("videoService", microService.Client())
@@ -648,6 +651,7 @@ func (e *LikeService) TotalFavourite(ctx context.Context, req *pb.IdReq, rsp *pb
 
 //FavouriteVideoCount 根据userId获取这个用户点赞视频数量
 func (e *LikeService) FavouriteVideoCount(ctx context.Context, req *pb.IdReq, rsp *pb.CountRsp) error {
+	log.Printf("Received LikeService.FavouriteVideoCount request: %v", req)
 	//将int64 userId转换为 string strUserId
 	strUserId := strconv.FormatInt(req.Id, 10)
 	//step1:查询Redis LikeUserId,如果key：strUserId存在,则获取集合中元素个数
