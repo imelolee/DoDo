@@ -8,27 +8,27 @@ import (
 	"time"
 	"videoService/config"
 	"videoService/model"
-	videoService "videoService/proto"
+	pb "videoService/proto"
 )
 
-type VideoService struct {
-}
+type VideoService struct{}
 
-// Feed
-// 通过传入时间戳，当前用户的id，返回对应的视频数组，以及视频数组中最早的发布时间
-// 获取视频数组大小是可以控制的，在config中的videoCount变量
-func (e *VideoService) Feed(ctx context.Context, req *videoService.FeedReq, rsp *videoService.FeedRsp) error {
+// Feed 通过传入时间戳，当前用户的id，返回对应的视频数组，以及视频数组中最早的发布时间
+func (e *VideoService) Feed(ctx context.Context, req *pb.FeedReq, rsp *pb.FeedRsp) error {
 	//创建对应返回视频的切片数组，提前将切片的容量设置好，可以减少切片扩容的性能
 	videos := make([]model.FeedVideo, 0, config.VideoCount)
 	//根据传入的时间，获得传入时间前n个视频，可以通过config.videoCount来控制
-	tableVideos, err := dao.GetVideosByLastTime(lastTime)
+	latestTime, _ := time.Parse(config.DateTime, req.LatestTime)
+	tableVideos, err := model.GetVideosByLastTime(latestTime)
 	if err != nil {
 		log.Printf("方法dao.GetVideosByLastTime(lastTime) 失败：%v", err)
-		return nil, time.Time{}, err
+		rsp.StatusCode = -1
+		rsp.StatusMsg = "Feed流获取失败"
+		return err
 	}
 	log.Printf("方法dao.GetVideosByLastTime(lastTime) 成功：%v", tableVideos)
 	//将数据通过copyVideos进行处理，在拷贝的过程中对数据进行组装
-	err = videoService.copyVideos(&videos, &tableVideos, userId)
+	err = copyVideos(&videos, &tableVideos, req.UserId)
 	if err != nil {
 		log.Printf("方法videoService.copyVideos(&videos, &tableVideos, userId) 失败：%v", err)
 		return nil, time.Time{}, err

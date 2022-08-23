@@ -79,6 +79,8 @@ require (
 // see https://github.com/etcd-io/etcd/issues/11154 and https://github.com/etcd-io/etcd/issues/11931.
 // replace google.golang.org/grpc => google.golang.org/grpc v1.26.0
 
-replace videoService => ./
-
-replace userService => ../userService
+replace (
+	videoService => ./
+	userService => ../userService
+	followService => ../followService
+)

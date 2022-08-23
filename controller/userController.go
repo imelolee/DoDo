@@ -17,7 +17,7 @@ func Login(c *gin.Context) {
 
 	// 初始化客户端
 	microService := util.InitMicro()
-	microClient := userService.NewUserService("userservice", microService.Client())
+	microClient := userService.NewUserService("userservice", GetMicroClient)
 
 	rsp, err := microClient.Login(context.TODO(), &userService.LoginRequest{
 		Username: username,
