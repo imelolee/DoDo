@@ -7,7 +7,7 @@ type User struct {
 	Password string
 }
 
-// User 最终封装后,controller返回的User结构体
+// FeedUser 最终封装后,controller返回的User结构体
 type FeedUser struct {
 	Id             int64  `json:"id,omitempty"`
 	Name           string `json:"name,omitempty"`
