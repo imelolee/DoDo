@@ -4,11 +4,12 @@ import (
 	"context"
 	followModel "followService/model"
 	followService "followService/proto"
-	"github.com/gogf/gf/util/gconv"
-	log "go-micro.dev/v4/logger"
 	likeService "likeService/proto"
 	"userService/model"
 	pb "userService/proto"
+
+	"github.com/gogf/gf/util/gconv"
+	log "go-micro.dev/v4/logger"
 )
 
 type UserService struct{}
@@ -98,10 +99,10 @@ func (e *UserService) GetFeedUserById(ctx context.Context, req *pb.IdReq, rsp *p
 	likeMicro := InitMicro()
 	likeClient := likeService.NewLikeService("likeService", likeMicro.Client())
 
-	totalFavorited, err := likeClient.TotalFavourite(context.TODO(), &likeService.IdReq{
+	totalRsp, err := likeClient.TotalFavourite(context.TODO(), &likeService.IdReq{
 		Id: req.Id,
 	})
-	favoritedCount, err := likeClient.FavouriteVideoCount(context.TODO(), &likeService.IdReq{
+	countRsp, err := likeClient.FavouriteVideoCount(context.TODO(), &likeService.IdReq{
 		Id: req.Id,
 	})
 
@@ -111,8 +112,8 @@ func (e *UserService) GetFeedUserById(ctx context.Context, req *pb.IdReq, rsp *p
 		FollowCount:    followCount,
 		FollowerCount:  followerCount,
 		IsFollow:       false,
-		TotalFavorited: totalFavorited.Count,
-		FavoriteCount:  favoritedCount.Count,
+		TotalFavorited: totalRsp.Count,
+		FavoriteCount:  countRsp.Count,
 	}
 
 	var tmpUser *pb.FeedUser
@@ -149,7 +150,7 @@ func (e *UserService) GetFeedUserByIdWithCurId(ctx context.Context, req *pb.CurI
 	followMicro := InitMicro()
 	followClient := followService.NewFollowService("followService", followMicro.Client())
 
-	isfollow, _ := followClient.IsFollowing(context.TODO(), &followService.UserTargetReq{
+	followRsp, _ := followClient.IsFollowing(context.TODO(), &followService.UserTargetReq{
 		UserId:   req.CurId,
 		TargetId: req.Id,
 	})
@@ -157,11 +158,11 @@ func (e *UserService) GetFeedUserByIdWithCurId(ctx context.Context, req *pb.CurI
 	likeMicro := InitMicro()
 	likeClient := likeService.NewLikeService("likeService", likeMicro.Client())
 
-	totalFavorited, _ := likeClient.TotalFavourite(context.TODO(), &likeService.IdReq{
+	totalRsp, _ := likeClient.TotalFavourite(context.TODO(), &likeService.IdReq{
 		Id: req.Id,
 	})
 
-	favoritedCount, _ := likeClient.FavouriteVideoCount(context.TODO(), &likeService.IdReq{
+	countRsp, _ := likeClient.FavouriteVideoCount(context.TODO(), &likeService.IdReq{
 		Id: req.Id,
 	})
 	tmpUser := model.FeedUser{
@@ -169,9 +170,9 @@ func (e *UserService) GetFeedUserByIdWithCurId(ctx context.Context, req *pb.CurI
 		Name:           tableUser.Name,
 		FollowCount:    followCount,
 		FollowerCount:  followerCount,
-		IsFollow:       isfollow.Flag,
-		TotalFavorited: totalFavorited.Count,
-		FavoriteCount:  favoritedCount.Count,
+		IsFollow:       followRsp.Flag,
+		TotalFavorited: totalRsp.Count,
+		FavoriteCount:  countRsp.Count,
 	}
 
 	var feedUser *pb.FeedUser

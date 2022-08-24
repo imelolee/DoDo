@@ -32,6 +32,7 @@ require (
 	github.com/gobwas/httphead v0.1.0 // indirect
 	github.com/gobwas/pool v0.2.1 // indirect
 	github.com/gobwas/ws v1.1.0 // indirect
+	github.com/gogf/gf v1.16.9 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/handlers v1.5.1 // indirect
@@ -80,7 +81,8 @@ require (
 // replace google.golang.org/grpc => google.golang.org/grpc v1.26.0
 
 replace (
-	videoService => ./
-	userService => ../userService
 	followService => ../followService
+	likeService => ../likeService
+	userService => ../userService
+	videoService => ./
 )
