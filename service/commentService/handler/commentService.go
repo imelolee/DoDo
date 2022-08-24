@@ -93,7 +93,7 @@ func (e *CommentService) Send(ctx context.Context, req *pb.CommentReq, rsp *pb.C
 	userMicro := InitMicro()
 	userClient := userService.NewUserService("userService", userMicro.Client())
 
-	userData, _ := userClient.GetFeedUserByIdWithCurId(context.TODO(), &userService.CurIdReq{
+	userRsp, _ := userClient.GetFeedUserByIdWithCurId(context.TODO(), &userService.CurIdReq{
 		Id:    req.Comment.VideoId,
 		CurId: req.Comment.UserId,
 	})
@@ -106,7 +106,7 @@ func (e *CommentService) Send(ctx context.Context, req *pb.CommentReq, rsp *pb.C
 	}
 
 	var user userModel.FeedUser
-	err = gconv.Struct(userData.User, &user)
+	err = gconv.Struct(userRsp.User, &user)
 	if err != nil {
 		log.Printf("类型转换失败:", err)
 	}
