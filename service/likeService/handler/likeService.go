@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	log "go-micro.dev/v4/logger"
 	"likeService/config"
 	"likeService/model"
 	pb "likeService/proto"
@@ -11,6 +10,8 @@ import (
 	"sync"
 	"time"
 	videoService "videoService/proto"
+
+	log "go-micro.dev/v4/logger"
 )
 
 type LikeService struct{}
@@ -565,10 +566,10 @@ func (e *LikeService) GetFavouriteList(ctx context.Context, req *pb.UserCurReq, 
 func (e *LikeService) TotalFavourite(ctx context.Context, req *pb.IdReq, rsp *pb.CountRsp) error {
 	log.Infof("Received LikeService.TotalFavourite request: %v", req)
 	//根据userId获取这个用户的发布视频列表信息
-	microService := InitMicro()
-	microClient := videoService.NewVideoService("videoService", microService.Client())
+	videoMicro := InitMicro()
+	videoClient := videoService.NewVideoService("videoService", videoMicro.Client())
 
-	videoRsp, err := microClient.GetVideoIdList(context.TODO(), &videoService.VideoIdReq{
+	videoRsp, err := videoClient.GetVideoIdList(context.TODO(), &videoService.VideoIdReq{
 		UserId: req.Id,
 	})
 	if err != nil {

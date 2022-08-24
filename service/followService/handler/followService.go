@@ -4,9 +4,10 @@ import (
 	"context"
 	"followService/config"
 	"followService/model"
+	"sync"
+
 	"github.com/gogf/gf/util/gconv"
 	log "go-micro.dev/v4/logger"
-	"sync"
 
 	"strconv"
 	"strings"
@@ -180,13 +181,13 @@ func (e *FollowService) GetFollowing(ctx context.Context, req *pb.UserIdReq, rsp
 			userMicro := InitMicro()
 			userClient := userService.NewUserService("userService", userMicro.Client())
 
-			userData, _ := userClient.GetFeedUserByIdWithCurId(context.TODO(), &userService.CurIdReq{
+			userRsp, _ := userClient.GetFeedUserByIdWithCurId(context.TODO(), &userService.CurIdReq{
 				Id:    idx,
 				CurId: req.UserId,
 			})
 
 			var user userModel.FeedUser
-			_ = gconv.Struct(userData.User, user)
+			_ = gconv.Struct(userRsp.User, user)
 
 			users[i] = user
 		}(i, ids[i])
@@ -241,12 +242,12 @@ func (e *FollowService) GetFollowers(ctx context.Context, req *pb.UserIdReq, rsp
 			userMicro := InitMicro()
 			userClient := userService.NewUserService("userService", userMicro.Client())
 			// 调用微服务的方法
-			userData, _ := userClient.GetFeedUserByIdWithCurId(context.TODO(), &userService.CurIdReq{
+			userRsp, _ := userClient.GetFeedUserByIdWithCurId(context.TODO(), &userService.CurIdReq{
 				Id:    idx,
 				CurId: req.UserId,
 			})
 			var user userModel.FeedUser
-			_ = gconv.Struct(userData.User, user)
+			_ = gconv.Struct(userRsp.User, user)
 
 			users[i] = user
 
