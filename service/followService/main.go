@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"followService/handler"
+	"followService/model"
 	pb "followService/proto"
 	"github.com/go-micro/plugins/v4/registry/consul"
 
@@ -18,6 +19,7 @@ var (
 func main() {
 	model.InitRedis()
 	model.InitDb()
+	model.InitRabbitMQ()
 
 	consulReg := consul.NewRegistry()
 

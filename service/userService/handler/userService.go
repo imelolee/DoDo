@@ -3,7 +3,10 @@ package handler
 import (
 	"context"
 	followModel "followService/model"
-	"log"
+	followService "followService/proto"
+	"github.com/gogf/gf/util/gconv"
+	log "go-micro.dev/v4/logger"
+	likeService "likeService/proto"
 	"userService/model"
 	pb "userService/proto"
 )
@@ -11,41 +14,64 @@ import (
 type UserService struct{}
 
 func (e *UserService) GetTableUserList(ctx context.Context, req *pb.Req, rsp *pb.UserListRsp) error {
-	log.Printf("Received UserService.GetTableUserList request: %v\n", req)
+	log.Infof("Received UserService.GetTableUserList request: %v\n", req)
 	tableUsers, err := model.GetTableUserList()
 	if err != nil {
-		log.Printf("Err:", err.Error())
+		rsp.User = nil
+		rsp.StatusCode = -1
+		rsp.StatusMsg = "用户查询失败"
+		return err
 	}
 	rsp.User = tableUsers
+	rsp.StatusCode = 0
+	rsp.StatusMsg = "用户查询成功"
 	return nil
 }
 
 func (e *UserService) GetTableUserByUsername(ctx context.Context, req *pb.UsernameReq, rsp *pb.UserRsp) error {
-	log.Printf("Received UserService.GetTableUserByUsername request: %v\n", req)
+	log.Infof("Received UserService.GetTableUserByUsername request: %v\n", req)
 	tableUser, err := model.GetTableUserByUsername(req.Name)
 	if err != nil {
-		log.Printf("Err:", err.Error())
+		rsp.User = nil
+		rsp.StatusCode = -1
+		rsp.StatusMsg = "用户查询失败"
+		return err
 	}
 	rsp.User = tableUser
+	rsp.StatusCode = 0
+	rsp.StatusMsg = "用户查询成功"
 	return nil
 }
 
 func (e *UserService) GetTableUserById(ctx context.Context, req *pb.IdReq, rsp *pb.UserRsp) error {
-	log.Printf("Received UserService.GetTableUserById request: %v\n", req)
+	log.Infof("Received UserService.GetTableUserById request: %v\n", req)
 	tableUser, err := model.GetTableUserById(req.Id)
 	if err != nil {
-		log.Printf("Err:", err.Error())
+		rsp.User = nil
+		rsp.StatusCode = -1
+		rsp.StatusMsg = "用户查询失败"
 	}
 	rsp.User = tableUser
+	rsp.StatusCode = 0
+	rsp.StatusMsg = "用户查询成功"
 	return nil
 }
 
 func (e *UserService) InsertTableUser(ctx context.Context, req *pb.UserReq, rsp *pb.BoolRsp) error {
-	log.Printf("Received UserService.GetTableUserById request: %v\n", req)
-	model.InsertTableUser(req.User)
+	log.Infof("Received UserService.GetTableUserById request: %v\n", req)
+	success := model.InsertTableUser(req.User)
+	if success == false {
+		rsp.StatusCode = -1
+		rsp.StatusMsg = "用户插入失败"
+		rsp.Flag = false
+		return nil
+	} else {
+		rsp.Flag = success
+		rsp.StatusCode = 0
+		rsp.StatusMsg = "用户插入成功"
+		return nil
+	}
 
-	rsp.Flag = true
-	return nil
 }
 
 // GetFeedUserById 未登录情况下,根据user_id获得User对象
@@ -61,35 +87,45 @@ func (e *UserService) GetFeedUserById(ctx context.Context, req *pb.IdReq, rsp *p
 	}
 	tableUser, err := model.GetTableUserById(req.Id)
 	if err != nil {
-		log.Println("Err:", err.Error())
-		log.Println("User Not Found")
 		rsp.User = &user
+		rsp.StatusCode = -1
+		rsp.StatusMsg = "用户查询失败"
+		return err
 	}
-	log.Println("Query User Success")
 	followCount, _ := followModel.GetFollowingCnt(req.Id)
-	if err != nil {
-		log.Println("Err:", err.Error())
-	}
 	followerCount, _ := followModel.GetFollowerCnt(req.Id)
-	if err != nil {
-		log.Println("Err:", err.Error())
-	}
-	u := GetLikeService() //解决循环依赖
-	totalFavorited, _ := u.TotalFavourite(id)
-	favoritedCount, _ := u.FavouriteVideoCount(id)
-	user = User{
-		Id:             id,
+
+	likeMicro := InitMicro()
+	likeClient := likeService.NewLikeService("likeService", likeMicro.Client())
+
+	totalFavorited, err := likeClient.TotalFavourite(context.TODO(), &likeService.IdReq{
+		Id: req.Id,
+	})
+	favoritedCount, err := likeClient.FavouriteVideoCount(context.TODO(), &likeService.IdReq{
+		Id: req.Id,
+	})
+
+	feedUser := model.FeedUser{
+		Id:             req.Id,
 		Name:           tableUser.Name,
 		FollowCount:    followCount,
 		FollowerCount:  followerCount,
 		IsFollow:       false,
-		TotalFavorited: totalFavorited,
-		FavoriteCount:  favoritedCount,
+		TotalFavorited: totalFavorited.Count,
+		FavoriteCount:  favoritedCount.Count,
 	}
-	return user, nil
+
+	var tmpUser *pb.FeedUser
+	err = gconv.Struct(feedUser, &tmpUser)
+
+	rsp.User = tmpUser
+	rsp.StatusCode = 0
+	rsp.StatusMsg = "用户查询成功"
+
+	return nil
 }
 
-// GetUserByIdWithCurId 已登录(curID)情况下,根据user_id获得User对象
+// GetFeedUserByIdWithCurId 已登录(curID)情况下,根据user_id获得User对象
 func (e *UserService) GetFeedUserByIdWithCurId(ctx context.Context, req *pb.CurIdReq, rsp *pb.FeedUserRsp) error {
 	user := pb.FeedUser{
 		Id:             0,
@@ -102,34 +138,48 @@ func (e *UserService) GetFeedUserByIdWithCurId(ctx context.Context, req *pb.CurI
 	}
 	tableUser, err := model.GetTableUserById(req.Id)
 	if err != nil {
-		log.Println("Err:", err.Error())
-		log.Println("User Not Found")
 		rsp.User = &user
+		rsp.StatusCode = -1
+		rsp.StatusMsg = "用户查询失败"
+		return err
 	}
-	log.Println("Query User Success")
-	followCount, err := followModel.GetFollowingCnt(id)
-	if err != nil {
-		log.Println("Err:", err.Error())
-	}
-	followerCount, err := usi.GetFollowerCnt(id)
-	if err != nil {
-		log.Println("Err:", err.Error())
-	}
-	isfollow, err := usi.IsFollowing(curId, id)
-	if err != nil {
-		log.Println("Err:", err.Error())
-	}
-	u := GetLikeService() //解决循环依赖
-	totalFavorited, _ := u.TotalFavourite(id)
-	favoritedCount, _ := u.FavouriteVideoCount(id)
-	user = User{
-		Id:             id,
+	followCount, _ := followModel.GetFollowingCnt(req.Id)
+	followerCount, _ := followModel.GetFollowerCnt(req.Id)
+
+	followMicro := InitMicro()
+	followClient := followService.NewFollowService("followService", followMicro.Client())
+
+	isfollow, _ := followClient.IsFollowing(context.TODO(), &followService.UserTargetReq{
+		UserId:   req.CurId,
+		TargetId: req.Id,
+	})
+
+	likeMicro := InitMicro()
+	likeClient := likeService.NewLikeService("likeService", likeMicro.Client())
+
+	totalFavorited, _ := likeClient.TotalFavourite(context.TODO(), &likeService.IdReq{
+		Id: req.Id,
+	})
+
+	favoritedCount, _ := likeClient.FavouriteVideoCount(context.TODO(), &likeService.IdReq{
+		Id: req.Id,
+	})
+	tmpUser := model.FeedUser{
+		Id:             req.Id,
 		Name:           tableUser.Name,
 		FollowCount:    followCount,
 		FollowerCount:  followerCount,
-		IsFollow:       isfollow,
-		TotalFavorited: totalFavorited,
-		FavoriteCount:  favoritedCount,
+		IsFollow:       isfollow.Flag,
+		TotalFavorited: totalFavorited.Count,
+		FavoriteCount:  favoritedCount.Count,
 	}
-	return user, nil
+
+	var feedUser *pb.FeedUser
+	err = gconv.Struct(tmpUser, &feedUser)
+
+	rsp.User = feedUser
+	rsp.StatusCode = 0
+	rsp.StatusMsg = "用户查询成功"
+
+	return nil
 }
