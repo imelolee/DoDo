@@ -1,11 +1,27 @@
 package handler
 
 import (
-	"log"
+	"context"
+	"github.com/go-micro/plugins/v4/registry/consul"
+	"github.com/gogf/gf/util/gconv"
+	"go-micro.dev/v4"
+	likeService "likeService/proto"
 	"sync"
+	userModel "userService/model"
 	userService "userService/proto"
 	"videoService/model"
+
 )
+
+// InitMicro 初始化微服务
+func InitMicro() micro.Service {
+	// 初始化客户端
+	consulReg := consul.NewRegistry()
+
+	return micro.NewService(micro.Registry(consulReg))
+
+}
+
 
 var service VideoService{}
 
@@ -29,34 +45,31 @@ func creatVideo(video *model.FeedVideo, data *model.Video, userId int64) {
 	var err error
 	video.Video = *data
 
-	microService := InitMicro()
-	microClient := userService.NewUserService("userService", microService.Client())
-
 
 	//插入Author，这里需要将视频的发布者和当前登录的用户传入，才能正确获得isFollow，
 	//如果出现错误，不能直接返回失败，将默认值返回，保证稳定
 	go func() {
-		video.Author, err = microClient.GetUserByIdWithCurId(data.AuthorId, userId)
-		if err != nil {
-			log.Printf(err.Error())
-		}
+		userMicro := InitMicro()
+		userClient := userService.NewUserService("userService", userMicro.Client())
+		userRsp, _ := userClient.GetFeedUserByIdWithCurId(context.TODO(), &userService.CurIdReq{
+			CurId: userId,
+		})
 
-		if err != nil {
-			log.Printf("方法videoService.GetUserByIdWithCurId(data.AuthorId, userId) 失败：%v", err)
-		} else {
-			log.Printf("方法videoService.GetUserByIdWithCurId(data.AuthorId, userId) 成功")
-		}
+		var tmpUser userModel.FeedUser
+		gconv.Struct(userRsp, &tmpUser)
+
+		video.Author = tmpUser
 		wg.Done()
 	}()
 
 	//插入点赞数量，同上所示，不将nil直接向上返回，数据没有就算了，给一个默认就行了
 	go func() {
-		video.FavoriteCount, err = videoService.FavouriteCount(data.Id)
-		if err != nil {
-			log.Printf("方法videoService.FavouriteCount(data.ID) 失败：%v", err)
-		} else {
-			log.Printf("方法videoService.FavouriteCount(data.ID) 成功")
-		}
+		likeMicro := InitMicro()
+		likeClient := likeService.NewLikeService("likeService", likeMicro.Client())
+		countRsp, _ = likeClient.FavouriteCount(context.TODO(), &likeService.IdReq{
+			Id: data.Id,
+		})
+
 		wg.Done()
 	}()
 

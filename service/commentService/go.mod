@@ -86,6 +86,7 @@ require (
 
 replace (
 	commentService => ./
+	likeService => ../likeService
 	followService => ../followService
 	userService => ../userService
 )
