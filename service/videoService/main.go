@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/go-micro/plugins/v4/registry/consul"
-	"go-micro.dev/v4/cmd/protoc-gen-micro/plugin/micro"
 	"videoService/handler"
 	"videoService/model"
 	pb "videoService/proto"

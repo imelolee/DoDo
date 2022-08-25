@@ -5,82 +5,85 @@ package videoService;
 option go_package = "./proto;videoService";
 
 service VideoService {
- rpc Feed(FeedReq) returns (FeedRsp) {};
- rpc GetVideo(GetVideoReq) returns (GetVideoRsp) {};
- rpc Publish(PublishReq) returns (PublishRsp) {};
- rpc GetPublishList(PublishListReq) returns (PublishListRsp) {};
- rpc GetVideoIdList(VideoIdReq) returns (VideoIdRsp) {};
+	rpc Feed(FeedReq) returns (FeedRsp) {};
+	rpc GetVideo(GetVideoReq) returns (GetVideoRsp) {};
+	rpc Publish(PublishReq) returns (PublishRsp) {};
+	rpc GetPublishList(PublishListReq) returns (PublishListRsp) {};
+	rpc GetVideoIdList(VideoIdReq) returns (VideoIdRsp) {};
 }
 
 message FeedReq {
-  string latest_time = 1;
-  int64 userId = 3;
+	string latest_time = 1;
+	int64 userId = 3;
 }
 
 message User{
-  int64 id = 1;
-  string name = 2;
-  int64 follow_count = 3;
-  int64 follower_count = 4;
-  bool is_follow = 5;
+	int64 id = 1;
+	string name = 2;
+	int64 follow_count = 3;
+	int64 follower_count = 4;
+	bool is_follow = 5;
 }
 
 message Video{
-  int64 id = 1;
-  User author = 2;
-  string play_url = 3;
-  string cover_url = 4;
-  int64 favorite_count = 5;
-  int64 comment_count = 6;
-  bool is_favorite = 7;
-  string title = 8;
+	int64 id = 1;
+	User author = 2;
+	string play_url = 3;
+	string cover_url = 4;
+	int64 favorite_count = 5;
+	int64 comment_count = 6;
+	bool is_favorite = 7;
+	string title = 8;
 
 }
 
 message FeedRsp{
-  int64 status_code = 1;
-  string status_msg = 2;
-  int64 next_time = 3;
-  repeated Video video_list = 4;
+	int64 status_code = 1;
+	string status_msg = 2;
+	int64 next_time = 3;
+	repeated Video video_list = 4;
 }
 
 message GetVideoReq {
-  int64 videoId = 1;
-  int64 userId = 2;
+	int64 videoId = 1;
+	int64 userId = 2;
 }
 
 message GetVideoRsp {
-  int64 status_code = 1;
-  string status_msg = 2;
-  Video video = 3;
+	int64 status_code = 1;
+	string status_msg = 2;
+	Video video = 3;
 }
 
 message PublishReq{
-  bytes data = 1;
-  int64 userId = 2;
-  string title = 3;
+	bytes data = 1;
+	int64 userId = 2;
+	string title = 3;
+	int64 fileSize = 4;
 }
 
 message PublishRsp{
-  int64 status_code = 1;
-  string status_msg = 2;
+	int64 status_code = 1;
+	string status_msg = 2;
 }
 
 message PublishListReq{
-  int64 userId = 1;
-  int64 curId = 2;
+	int64 userId = 1;
+	int64 curId = 2;
 }
 
 message PublishListRsp{
-  int64 status_code = 1;
-  string status_msg = 2;
-  repeated Video video = 3;
+	int64 status_code = 1;
+	string status_msg = 2;
+	repeated Video video = 3;
 }
 
 message VideoIdReq{
-  int64 userId = 1;
+	int64 userId = 1;
 }
 
 message VideoIdRsp{
-  repeated int64 videoId = 1;
+	int64 status_code = 1;
+	string status_msg = 2;
+	repeated int64 videoId = 3;
 }
