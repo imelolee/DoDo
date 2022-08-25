@@ -4,12 +4,11 @@ import (
 	"context"
 	followModel "followService/model"
 	followService "followService/proto"
+	"github.com/gogf/gf/util/gconv"
+	log "go-micro.dev/v4/logger"
 	likeService "likeService/proto"
 	"userService/model"
 	pb "userService/proto"
-
-	"github.com/gogf/gf/util/gconv"
-	log "go-micro.dev/v4/logger"
 )
 
 type UserService struct{}
@@ -30,7 +29,6 @@ func (e *UserService) GetTableUserByUsername(ctx context.Context, req *pb.Userna
 	tableUser, err := model.GetTableUserByUsername(req.Name)
 	if err != nil {
 		rsp.User = nil
-		return err
 	}
 	rsp.User = tableUser
 	return nil
