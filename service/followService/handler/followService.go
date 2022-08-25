@@ -26,8 +26,6 @@ func (e *FollowService) IsFollowing(ctx context.Context, req *pb.UserTargetReq, 
 		// 重现设置过期时间。
 		model.RdbFollowingPart.Expire(model.Ctx, strconv.Itoa(int(req.UserId)), config.ExpireTime)
 		rsp.Flag = true
-		rsp.StatusCode = 0
-		rsp.StatusMsg = "查询成功"
 		return nil
 	}
 	// SQL 查询。
@@ -35,21 +33,15 @@ func (e *FollowService) IsFollowing(ctx context.Context, req *pb.UserTargetReq, 
 
 	if nil != err {
 		rsp.Flag = false
-		rsp.StatusCode = -1
-		rsp.StatusMsg = "查询失败"
 		return err
 	}
 	if nil == relation {
 		rsp.Flag = false
-		rsp.StatusCode = 0
-		rsp.StatusMsg = "查询成功"
 		return nil
 	}
 	// 存在此关系，将其注入Redis中。
 	go addRelationToRedis(int(req.UserId), int(req.TargetId))
 	rsp.Flag = true
-	rsp.StatusCode = 0
-	rsp.StatusMsg = "查询成功"
 	return nil
 }
 
@@ -60,24 +52,18 @@ func (e *FollowService) GetFollowerCnt(ctx context.Context, req *pb.UserIdReq, r
 		// 更新过期时间。
 		model.RdbFollowers.Expire(model.Ctx, strconv.Itoa(int(req.UserId)), config.ExpireTime)
 		rsp.Count = cnt
-		rsp.StatusCode = 0
-		rsp.StatusMsg = "查询成功"
 		return nil
 	}
 	// SQL中查询。
 	ids, err := model.GetFollowersIds(req.UserId)
 	if nil != err {
 		rsp.Count = 0
-		rsp.StatusCode = -1
-		rsp.StatusMsg = "查询失败"
 		return err
 	}
 	// 将数据存入Redis.
 	// 更新followers 和 followingPart
 	go addFollowersToRedis(int(req.UserId), ids)
 	rsp.Count = int64(len(ids))
-	rsp.StatusCode = 0
-	rsp.StatusMsg = "查询成功"
 
 	return nil
 }
@@ -89,8 +75,6 @@ func (e *FollowService) GetFollowingCnt(ctx context.Context, req *pb.UserIdReq, 
 		// 更新过期时间。
 		model.RdbFollowing.Expire(model.Ctx, strconv.Itoa(int(req.UserId)), config.ExpireTime)
 		rsp.Count = cnt
-		rsp.StatusCode = 0
-		rsp.StatusMsg = "查询成功"
 		return nil
 
 	}
@@ -99,15 +83,11 @@ func (e *FollowService) GetFollowingCnt(ctx context.Context, req *pb.UserIdReq, 
 
 	if nil != err {
 		rsp.Count = 0
-		rsp.StatusCode = -1
-		rsp.StatusMsg = "查询失败"
 		return err
 	}
 	// 更新Redis中的followers和followPart
 	go addFollowingToRedis(int(req.UserId), ids)
 	rsp.Count = int64(len(ids))
-	rsp.StatusCode = 0
-	rsp.StatusMsg = "查询成功"
 
 	return nil
 }
@@ -124,8 +104,6 @@ func (e *FollowService) AddFollowRelation(ctx context.Context, req *pb.UserTarge
 	// 更新redis信息。
 	updateRedisWithAdd(req.UserId, req.TargetId)
 
-	rsp.StatusCode = 0
-	rsp.StatusMsg = "添加成功"
 	rsp.Flag = true
 
 	return nil
@@ -142,6 +120,9 @@ func (e *FollowService) DeleteFollowRelation(ctx context.Context, req *pb.UserTa
 	// 记录日志
 	// 更新redis信息。
 	updateRedisWithDel(req.UserId, req.TargetId)
+
+	rsp.Flag = true
+
 	return nil
 }
 
@@ -152,15 +133,11 @@ func (e *FollowService) GetFollowing(ctx context.Context, req *pb.UserIdReq, rsp
 	// 查询出错
 	if nil != err {
 		rsp.User = nil
-		rsp.StatusCode = -1
-		rsp.StatusMsg = "查询错误"
 		return err
 	}
 	// 没得关注者
 	if nil == ids {
 		rsp.User = nil
-		rsp.StatusCode = 0
-		rsp.StatusMsg = "查询成功"
 		return nil
 	}
 	// 根据每个id来查询用户信息。
@@ -198,8 +175,6 @@ func (e *FollowService) GetFollowing(ctx context.Context, req *pb.UserIdReq, rsp
 	var followUser []*pb.FeedUser
 	_ = gconv.Struct(users, &followUser)
 	rsp.User = followUser
-	rsp.StatusCode = 0
-	rsp.StatusMsg = "查询成功"
 
 	return nil
 }
@@ -211,15 +186,11 @@ func (e *FollowService) GetFollowers(ctx context.Context, req *pb.UserIdReq, rsp
 	// 查询出错
 	if nil != err {
 		rsp.User = nil
-		rsp.StatusCode = -1
-		rsp.StatusMsg = "查询失败"
 		return err
 	}
 	// 没得粉丝
 	if nil == ids {
 		rsp.User = nil
-		rsp.StatusCode = 0
-		rsp.StatusMsg = "查询成功"
 		return nil
 	}
 	// 根据每个id来查询用户信息。
@@ -260,8 +231,6 @@ func (e *FollowService) GetFollowers(ctx context.Context, req *pb.UserIdReq, rsp
 	var followerUser []*pb.FeedUser
 	_ = gconv.Struct(users, &followerUser)
 	rsp.User = followerUser
-	rsp.StatusCode = 0
-	rsp.StatusMsg = "查询成功"
 
 	return nil
 }

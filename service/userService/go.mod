@@ -4,8 +4,8 @@ go 1.18
 
 require (
 	followService v0.0.0-00010101000000-000000000000
-	github.com/genleel/DoDo v0.0.0-20220823131450-326ffb87fbde
 	github.com/go-micro/plugins/v4/registry/consul v1.1.0
+	github.com/gogf/gf v1.16.9
 	go-micro.dev/v4 v4.8.1
 	google.golang.org/protobuf v1.28.1
 	gorm.io/driver/mysql v1.3.6
@@ -87,6 +87,6 @@ require (
 replace (
 	followService => ../followService
 	likeService => ../likeService
-	videoService => ../videoService
 	userservice => ./
+	videoService => ../videoService
 )

@@ -21,9 +21,7 @@ message UserTargetReq{
 }
 
 message BoolRsp{
-	int64 status_code = 1;
-	string status_msg = 2;
-	bool flag = 3;
+	bool flag = 1;
 }
 
 message UserIdReq{
@@ -31,9 +29,7 @@ message UserIdReq{
 }
 
 message CountRsp{
-	int64 status_code = 1;
-	string status_msg = 2;
-	int64  count = 3;
+	int64  count = 1;
 }
 
 message FeedUser{
@@ -47,9 +43,7 @@ message FeedUser{
 }
 
 message UserListRsp{
-	int64 status_code = 1;
-	string status_msg = 2;
-	repeated FeedUser user = 3;
+	repeated FeedUser user = 1;
 }
 
 
