@@ -28,4 +28,4 @@ test:
 
 .PHONY: docker
 docker:
-	@docker build -t videoService
+	@docker build -t videoService:latest .
