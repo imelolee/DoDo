@@ -27,21 +27,15 @@ func (e *LikeService) IsFavorite(ctx context.Context, req *pb.VideoUserReq, rsp 
 	if n, err := model.RdbLikeUserId.Exists(model.Ctx, strUserId).Result(); n > 0 {
 		//如果有问题，说明查询redis失败,返回默认false,返回错误信息
 		if err != nil {
-			rsp.StatusCode = -1
-			rsp.StatusMsg = "查询失败"
 			rsp.Flag = false
 			return err
 		}
 		exist, err := model.RdbLikeUserId.SIsMember(model.Ctx, strUserId, req.VideoId).Result()
 		//如果有问题，说明查询redis失败,返回默认false,返回错误信息
 		if err != nil {
-			rsp.StatusCode = -1
-			rsp.StatusMsg = "查询失败"
 			rsp.Flag = false
 			return err
 		}
-		rsp.StatusCode = 0
-		rsp.StatusMsg = "查询成功"
 		rsp.Flag = exist
 
 		return nil
@@ -50,29 +44,21 @@ func (e *LikeService) IsFavorite(ctx context.Context, req *pb.VideoUserReq, rsp 
 		if n, err := model.RdbLikeVideoId.Exists(model.Ctx, strVideoId).Result(); n > 0 {
 			//如果有问题，说明查询redis失败,返回默认false,返回错误信息
 			if err != nil {
-				rsp.StatusCode = -1
-				rsp.StatusMsg = "查询失败"
 				rsp.Flag = false
 				return err
 			}
 			exist, err := model.RdbLikeVideoId.SIsMember(model.Ctx, strVideoId, req.UserId).Result()
 			//如果有问题，说明查询redis失败,返回默认false,返回错误信息
 			if err != nil {
-				rsp.StatusCode = -1
-				rsp.StatusMsg = "查询失败"
 				rsp.Flag = false
 				return err
 			}
-			rsp.StatusCode = 0
-			rsp.StatusMsg = "查询成功"
 			rsp.Flag = exist
 			return nil
 		} else {
 			//key:strUserId，加入value:DefaultRedisValue,过期才会删，防止删最后一个数据的时候数据库还没更新完出现脏读，或者数据库操作失败造成的脏读
 			if _, err := model.RdbLikeUserId.SAdd(model.Ctx, strUserId, config.DefaultRedisValue).Result(); err != nil {
 				model.RdbLikeUserId.Del(model.Ctx, strUserId)
-				rsp.StatusCode = -1
-				rsp.StatusMsg = "查询失败"
 				rsp.Flag = false
 				return err
 			}
@@ -81,8 +67,6 @@ func (e *LikeService) IsFavorite(ctx context.Context, req *pb.VideoUserReq, rsp 
 				time.Duration(config.OneMonth)*time.Second).Result()
 			if err != nil {
 				model.RdbLikeUserId.Del(model.Ctx, strUserId)
-				rsp.StatusCode = -1
-				rsp.StatusMsg = "查询失败"
 				rsp.Flag = false
 				return err
 			}
@@ -90,8 +74,6 @@ func (e *LikeService) IsFavorite(ctx context.Context, req *pb.VideoUserReq, rsp 
 			videoIdList, err := model.GetLikeVideoIdList(req.UserId)
 			//如果有问题，说明查询数据库失败，返回默认false,返回错误信息："get likeVideoIdList failed"
 			if err != nil {
-				rsp.StatusCode = -1
-				rsp.StatusMsg = "查询失败"
 				rsp.Flag = false
 				return err
 			}
@@ -103,13 +85,10 @@ func (e *LikeService) IsFavorite(ctx context.Context, req *pb.VideoUserReq, rsp 
 			exist, err := model.RdbLikeUserId.SIsMember(model.Ctx, strUserId, req.VideoId).Result()
 			//如果有问题，说明操作redis失败,返回默认false,返回错误信息
 			if err != nil {
-				rsp.StatusCode = -1
-				rsp.StatusMsg = "查询失败"
 				rsp.Flag = false
 				return err
 			}
-			rsp.StatusCode = 0
-			rsp.StatusMsg = "查询成功"
+
 			rsp.Flag = exist
 			return nil
 		}
@@ -125,8 +104,6 @@ func (e *LikeService) FavouriteCount(ctx context.Context, req *pb.IdReq, rsp *pb
 	if n, err := model.RdbLikeVideoId.Exists(model.Ctx, strVideoId).Result(); n > 0 {
 		//如果有问题，说明查询redis失败,返回默认false,返回错误信息
 		if err != nil {
-			rsp.StatusCode = -1
-			rsp.StatusMsg = "查询失败"
 			rsp.Count = 0
 			return err
 		}
@@ -134,20 +111,14 @@ func (e *LikeService) FavouriteCount(ctx context.Context, req *pb.IdReq, rsp *pb
 		count, err := model.RdbLikeVideoId.SCard(model.Ctx, strVideoId).Result()
 		//如果有问题，说明操作redis失败,返回默认0,返回错误信息
 		if err != nil {
-			rsp.StatusCode = -1
-			rsp.StatusMsg = "查询失败"
 			rsp.Count = 0
 			return err
 		}
-		rsp.StatusCode = 0
-		rsp.StatusMsg = "查询成功"
 		rsp.Count = count
 	} else {
 		//key:strVideoId，加入value:DefaultRedisValue,过期才会删，防止删最后一个数据的时候数据库还没更新完出现脏读，或者数据库操作失败造成的脏读
 		if _, err := model.RdbLikeVideoId.SAdd(model.Ctx, strVideoId, config.DefaultRedisValue).Result(); err != nil {
 			model.RdbLikeVideoId.Del(model.Ctx, strVideoId)
-			rsp.StatusCode = -1
-			rsp.StatusMsg = "查询失败"
 			rsp.Count = 0
 			return err
 		}
@@ -156,8 +127,6 @@ func (e *LikeService) FavouriteCount(ctx context.Context, req *pb.IdReq, rsp *pb
 			time.Duration(config.OneMonth)*time.Second).Result()
 		if err != nil {
 			model.RdbLikeVideoId.Del(model.Ctx, strVideoId)
-			rsp.StatusCode = -1
-			rsp.StatusMsg = "查询失败"
 			rsp.Count = 0
 			return err
 		}
@@ -166,8 +135,6 @@ func (e *LikeService) FavouriteCount(ctx context.Context, req *pb.IdReq, rsp *pb
 		userIdList, err := model.GetLikeUserIdList(req.Id)
 		//如果有问题，说明查询数据库失败，返回默认0,返回错误信息："get likeUserIdList failed"
 		if err != nil {
-			rsp.StatusCode = -1
-			rsp.StatusMsg = "查询失败"
 			rsp.Count = 0
 			return err
 		}
@@ -179,13 +146,10 @@ func (e *LikeService) FavouriteCount(ctx context.Context, req *pb.IdReq, rsp *pb
 		count, err := model.RdbLikeVideoId.SCard(model.Ctx, strVideoId).Result()
 		//如果有问题，说明操作redis失败,返回默认0,返回错误信息
 		if err != nil {
-			rsp.StatusCode = -1
-			rsp.StatusMsg = "查询失败"
 			rsp.Count = 0
 			return err
 		}
-		rsp.StatusCode = 0
-		rsp.StatusMsg = "查询成功"
+
 		rsp.Count = count
 		return nil
 	}
@@ -213,15 +177,12 @@ func (e *LikeService) FavouriteAction(ctx context.Context, req *pb.ActionReq, rs
 		if n, err := model.RdbLikeUserId.Exists(model.Ctx, strUserId).Result(); n > 0 {
 			//如果有问题，说明查询redis失败,返回错误信息
 			if err != nil {
-				rsp.StatusCode = -1
-				rsp.StatusMsg = "查询失败"
+
 				return err
 			}
 			//如果加载过此信息key:strUserId，则加入value:videoId
 			//如果redis LikeUserId 添加失败，数据库操作成功，会有脏数据，所以只有redis操作成功才执行数据库likes表操作
 			if _, err1 := model.RdbLikeUserId.SAdd(model.Ctx, strUserId, req.VideoId).Result(); err1 != nil {
-				rsp.StatusCode = -1
-				rsp.StatusMsg = "查询失败"
 				return err
 			} else {
 				//如果数据库操作失败了，redis是正确数据，客户端显示的是点赞成功，不会影响后续结果
@@ -234,8 +195,6 @@ func (e *LikeService) FavouriteAction(ctx context.Context, req *pb.ActionReq, rs
 			//key:strUserId，加入value:DefaultRedisValue,过期才会删，防止删最后一个数据的时候数据库还没更新完出现脏读，或者数据库操作失败造成的脏读
 			if _, err := model.RdbLikeUserId.SAdd(model.Ctx, strUserId, config.DefaultRedisValue).Result(); err != nil {
 				model.RdbLikeUserId.Del(model.Ctx, strUserId)
-				rsp.StatusCode = -1
-				rsp.StatusMsg = "查询失败"
 				return err
 			}
 			//给键值设置有效期，类似于gc机制
@@ -243,15 +202,11 @@ func (e *LikeService) FavouriteAction(ctx context.Context, req *pb.ActionReq, rs
 				time.Duration(config.OneMonth)*time.Second).Result()
 			if err != nil {
 				model.RdbLikeUserId.Del(model.Ctx, strUserId)
-				rsp.StatusCode = -1
-				rsp.StatusMsg = "查询失败"
 				return err
 			}
 			videoIdList, err := model.GetLikeVideoIdList(req.UserId)
 			//如果有问题，说明查询失败，返回错误信息："get likeVideoIdList failed"
 			if err != nil {
-				rsp.StatusCode = -1
-				rsp.StatusMsg = "查询失败"
 				return err
 			}
 			//遍历videoIdList,添加进key的集合中，若失败，删除key，并返回错误信息，这么做的原因是防止脏读，
@@ -259,15 +214,11 @@ func (e *LikeService) FavouriteAction(ctx context.Context, req *pb.ActionReq, rs
 			for _, likeVideoId := range videoIdList {
 				if _, err := model.RdbLikeUserId.SAdd(model.Ctx, strUserId, likeVideoId).Result(); err != nil {
 					model.RdbLikeUserId.Del(model.Ctx, strUserId)
-					rsp.StatusCode = -1
-					rsp.StatusMsg = "查询失败"
 					return err
 				}
 			}
 			//这样操作理由同上
 			if _, err := model.RdbLikeUserId.SAdd(model.Ctx, strUserId, req.VideoId).Result(); err != nil {
-				rsp.StatusCode = -1
-				rsp.StatusMsg = "查询失败"
 				return err
 			} else {
 				model.RmqLikeAdd.Publish(sb.String())
@@ -277,14 +228,10 @@ func (e *LikeService) FavouriteAction(ctx context.Context, req *pb.ActionReq, rs
 		if n, err := model.RdbLikeVideoId.Exists(model.Ctx, strVideoId).Result(); n > 0 {
 			//如果有问题，说明查询redis失败,返回错误信息
 			if err != nil {
-				rsp.StatusCode = -1
-				rsp.StatusMsg = "查询失败"
 				return err
 			} //如果加载过此信息key:strVideoId，则加入value:userId
 			//如果redis LikeVideoId 添加失败，返回错误信息
 			if _, err := model.RdbLikeVideoId.SAdd(model.Ctx, strVideoId, req.UserId).Result(); err != nil {
-				rsp.StatusCode = -1
-				rsp.StatusMsg = "查询失败"
 				return err
 			}
 		} else { //如果不存在，则维护Redis LikeVideoId 新建key:strVideoId，设置有效期，加入DefaultRedisValue
@@ -293,8 +240,6 @@ func (e *LikeService) FavouriteAction(ctx context.Context, req *pb.ActionReq, rs
 			//key:strVideoId，加入value:DefaultRedisValue,过期才会删，防止删最后一个数据的时候数据库还没更新完出现脏读，或者数据库操作失败造成的脏读
 			if _, err := model.RdbLikeVideoId.SAdd(model.Ctx, strVideoId, config.DefaultRedisValue).Result(); err != nil {
 				model.RdbLikeVideoId.Del(model.Ctx, strVideoId)
-				rsp.StatusCode = -1
-				rsp.StatusMsg = "查询失败"
 				return err
 			}
 			//给键值设置有效期，类似于gc机制
@@ -302,14 +247,10 @@ func (e *LikeService) FavouriteAction(ctx context.Context, req *pb.ActionReq, rs
 				time.Duration(config.OneMonth)*time.Second).Result()
 			if err != nil {
 				model.RdbLikeVideoId.Del(model.Ctx, strVideoId)
-				rsp.StatusCode = -1
-				rsp.StatusMsg = "查询失败"
 			}
 			userIdList, err := model.GetLikeUserIdList(req.VideoId)
 			//如果有问题，说明查询失败，返回错误信息："get likeUserIdList failed"
 			if err != nil {
-				rsp.StatusCode = -1
-				rsp.StatusMsg = "查询失败"
 				return err
 			}
 			//遍历userIdList,添加进key的集合中，若失败，删除key，并返回错误信息，这么做的原因是防止脏读，
@@ -317,21 +258,15 @@ func (e *LikeService) FavouriteAction(ctx context.Context, req *pb.ActionReq, rs
 			for _, likeUserId := range userIdList {
 				if _, err := model.RdbLikeVideoId.SAdd(model.Ctx, strVideoId, likeUserId).Result(); err != nil {
 					model.RdbLikeVideoId.Del(model.Ctx, strVideoId)
-					rsp.StatusCode = -1
-					rsp.StatusMsg = "查询失败"
 					return err
 				}
 			}
 			//这样操作理由同上
 			if _, err := model.RdbLikeVideoId.SAdd(model.Ctx, strVideoId, req.UserId).Result(); err != nil {
-				rsp.StatusCode = -1
-				rsp.StatusMsg = "查询失败"
 				return err
 			}
 		}
 
-		rsp.StatusCode = 0
-		rsp.StatusMsg = "查询成功"
 		return nil
 
 	} else { //执行取消赞操作维护
@@ -339,13 +274,9 @@ func (e *LikeService) FavouriteAction(ctx context.Context, req *pb.ActionReq, rs
 		if n, err := model.RdbLikeUserId.Exists(model.Ctx, strUserId).Result(); n > 0 {
 			//如果有问题，说明查询redis失败,返回错误信息
 			if err != nil {
-				rsp.StatusCode = -1
-				rsp.StatusMsg = "查询失败"
 				return err
 			} //防止出现redis数据不一致情况，当redis删除操作成功，才执行数据库更新操作
 			if _, err := model.RdbLikeUserId.SRem(model.Ctx, strUserId, req.VideoId).Result(); err != nil {
-				rsp.StatusCode = -1
-				rsp.StatusMsg = "查询失败"
 				return err
 			} else {
 				//后续数据库的操作，可以在mq里设置若执行数据库更新操作失败，重新消费该信息
@@ -358,8 +289,6 @@ func (e *LikeService) FavouriteAction(ctx context.Context, req *pb.ActionReq, rs
 			//key:strUserId，加入value:DefaultRedisValue,过期才会删，防止删最后一个数据的时候数据库还没更新完出现脏读，或者数据库操作失败造成的脏读
 			if _, err := model.RdbLikeUserId.SAdd(model.Ctx, strUserId, config.DefaultRedisValue).Result(); err != nil {
 				model.RdbLikeUserId.Del(model.Ctx, strUserId)
-				rsp.StatusCode = -1
-				rsp.StatusMsg = "查询失败"
 				return err
 			}
 			//给键值设置有效期，类似于gc机制
@@ -367,15 +296,11 @@ func (e *LikeService) FavouriteAction(ctx context.Context, req *pb.ActionReq, rs
 				time.Duration(config.OneMonth)*time.Second).Result()
 			if err != nil {
 				model.RdbLikeUserId.Del(model.Ctx, strUserId)
-				rsp.StatusCode = -1
-				rsp.StatusMsg = "查询失败"
 				return err
 			}
 			videoIdList, err := model.GetLikeVideoIdList(req.UserId)
 			//如果有问题，说明查询失败，返回错误信息："get likeVideoIdList failed"
 			if err != nil {
-				rsp.StatusCode = -1
-				rsp.StatusMsg = "查询失败"
 				return err
 			}
 			//遍历videoIdList,添加进key的集合中，若失败，删除key，并返回错误信息，这么做的原因是防止脏读，
@@ -383,15 +308,11 @@ func (e *LikeService) FavouriteAction(ctx context.Context, req *pb.ActionReq, rs
 			for _, likeVideoId := range videoIdList {
 				if _, err := model.RdbLikeUserId.SAdd(model.Ctx, strUserId, likeVideoId).Result(); err != nil {
 					model.RdbLikeUserId.Del(model.Ctx, strUserId)
-					rsp.StatusCode = -1
-					rsp.StatusMsg = "查询失败"
 					return err
 				}
 			}
 			//这样操作理由同上
 			if _, err := model.RdbLikeUserId.SRem(model.Ctx, strUserId, req.VideoId).Result(); err != nil {
-				rsp.StatusCode = -1
-				rsp.StatusMsg = "查询失败"
 				return err
 			} else {
 				model.RmqLikeDel.Publish(sb.String())
@@ -402,14 +323,10 @@ func (e *LikeService) FavouriteAction(ctx context.Context, req *pb.ActionReq, rs
 		if n, err := model.RdbLikeVideoId.Exists(model.Ctx, strVideoId).Result(); n > 0 {
 			//如果有问题，说明查询redis失败,返回错误信息
 			if err != nil {
-				rsp.StatusCode = -1
-				rsp.StatusMsg = "查询失败"
 				return err
 			} //如果加载过此信息key:strVideoId，则删除value:userId
 			//如果redis LikeVideoId 删除失败，返回错误信息
 			if _, err := model.RdbLikeVideoId.SRem(model.Ctx, strVideoId, req.UserId).Result(); err != nil {
-				rsp.StatusCode = -1
-				rsp.StatusMsg = "查询失败"
 				return err
 			}
 		} else { //如果不存在，则维护Redis LikeVideoId 新建key:strVideoId,加入value:DefaultRedisValue,过期才会删，防止删最后一个数据的时候数据库
@@ -419,8 +336,6 @@ func (e *LikeService) FavouriteAction(ctx context.Context, req *pb.ActionReq, rs
 			//key:strVideoId，加入value:DefaultRedisValue,过期才会删，防止删最后一个数据的时候数据库还没更新完出现脏读，或者数据库操作失败造成的脏读
 			if _, err := model.RdbLikeVideoId.SAdd(model.Ctx, strVideoId, config.DefaultRedisValue).Result(); err != nil {
 				model.RdbLikeVideoId.Del(model.Ctx, strVideoId)
-				rsp.StatusCode = -1
-				rsp.StatusMsg = "查询失败"
 				return err
 			}
 			//给键值设置有效期，类似于gc机制
@@ -428,15 +343,12 @@ func (e *LikeService) FavouriteAction(ctx context.Context, req *pb.ActionReq, rs
 				time.Duration(config.OneMonth)*time.Second).Result()
 			if err != nil {
 				model.RdbLikeVideoId.Del(model.Ctx, strVideoId)
-				rsp.StatusCode = -1
-				rsp.StatusMsg = "查询失败"
 				return err
 			}
 
 			userIdList, err := model.GetLikeUserIdList(req.VideoId)
 			//如果有问题，说明查询失败，返回错误信息："get likeUserIdList failed"
 			if err != nil {
-				rsp.StatusCode = -1
 				return err
 			}
 			//遍历userIdList,添加进key的集合中，若失败，删除key，并返回错误信息，这么做的原因是防止脏读，
@@ -444,20 +356,14 @@ func (e *LikeService) FavouriteAction(ctx context.Context, req *pb.ActionReq, rs
 			for _, likeUserId := range userIdList {
 				if _, err := model.RdbLikeVideoId.SAdd(model.Ctx, strVideoId, likeUserId).Result(); err != nil {
 					model.RdbLikeVideoId.Del(model.Ctx, strVideoId)
-					rsp.StatusCode = -1
-					rsp.StatusMsg = "查询失败"
 					return err
 				}
 			}
 			//这样操作理由同上
 			if _, err := model.RdbLikeVideoId.SRem(model.Ctx, strVideoId, req.UserId).Result(); err != nil {
-				rsp.StatusCode = -1
-				rsp.StatusMsg = "查询失败"
 				return err
 			}
 		}
-		rsp.StatusCode = 0
-		rsp.StatusMsg = "查询成功"
 		return nil
 	}
 }
@@ -471,8 +377,6 @@ func (e *LikeService) GetFavouriteList(ctx context.Context, req *pb.UserCurReq, 
 	if n, err := model.RdbLikeUserId.Exists(model.Ctx, strUserId).Result(); n > 0 {
 		//如果有问题，说明查询redis失败,返回默认nil,返回错误信息
 		if err != nil {
-			rsp.StatusCode = -1
-			rsp.StatusMsg = "查询失败"
 			rsp.Video = nil
 			return err
 		}
@@ -480,8 +384,6 @@ func (e *LikeService) GetFavouriteList(ctx context.Context, req *pb.UserCurReq, 
 		videoIdList, err := model.RdbLikeUserId.SMembers(model.Ctx, strUserId).Result()
 		//如果有问题，说明查询redis失败,返回默认nil,返回错误信息
 		if err != nil {
-			rsp.StatusCode = -1
-			rsp.StatusMsg = "查询失败"
 			rsp.Video = nil
 			return err
 		}
@@ -490,8 +392,6 @@ func (e *LikeService) GetFavouriteList(ctx context.Context, req *pb.UserCurReq, 
 		//采用协程并发将Video类型对象添加到集合中去
 		i := len(videoIdList) - 1 //去掉DefaultRedisValue
 		if i == 0 {
-			rsp.StatusCode = 0
-			rsp.StatusMsg = "查询成功"
 			rsp.Video = *favoriteVideoList
 		}
 		var wg sync.WaitGroup
@@ -505,16 +405,12 @@ func (e *LikeService) GetFavouriteList(ctx context.Context, req *pb.UserCurReq, 
 			go addFavouriteVideoList(videoId, req.CurId, favoriteVideoList, &wg)
 		}
 		wg.Wait()
-		rsp.StatusCode = 0
-		rsp.StatusMsg = "查询成功"
 		rsp.Video = *favoriteVideoList
 		return nil
 	} else { //如果Redis LikeUserId不存在此key,通过userId查询likes表,返回所有点赞videoId，并维护到Redis LikeUserId(key:strUserId)
 		//key:strUserId，加入value:DefaultRedisValue,过期才会删，防止删最后一个数据的时候数据库还没更新完出现脏读，或者数据库操作失败造成的脏读
 		if _, err := model.RdbLikeUserId.SAdd(model.Ctx, strUserId, config.DefaultRedisValue).Result(); err != nil {
 			model.RdbLikeUserId.Del(model.Ctx, strUserId)
-			rsp.StatusCode = -1
-			rsp.StatusMsg = "查询失败"
 			rsp.Video = nil
 			return err
 		}
@@ -523,16 +419,12 @@ func (e *LikeService) GetFavouriteList(ctx context.Context, req *pb.UserCurReq, 
 			time.Duration(config.OneMonth)*time.Second).Result()
 		if err != nil {
 			model.RdbLikeUserId.Del(model.Ctx, strUserId)
-			rsp.StatusCode = -1
-			rsp.StatusMsg = "查询失败"
 			rsp.Video = nil
 			return err
 		}
 		videoIdList, err := model.GetLikeVideoIdList(req.UserId)
 		//如果有问题，说明查询数据库失败，返回nil和错误信息:"get likeVideoIdList failed"
 		if err != nil {
-			rsp.StatusCode = -1
-			rsp.StatusMsg = "查询失败"
 			rsp.Video = nil
 			return err
 		}
@@ -541,8 +433,6 @@ func (e *LikeService) GetFavouriteList(ctx context.Context, req *pb.UserCurReq, 
 		//采用协程并发将Video类型对象添加到集合中去
 		i := len(videoIdList) - 1 //去掉DefaultRedisValue
 		if i == 0 {
-			rsp.StatusCode = 0
-			rsp.StatusMsg = "查询成功"
 			rsp.Video = *favoriteVideoList
 		}
 		var wg sync.WaitGroup
@@ -554,8 +444,6 @@ func (e *LikeService) GetFavouriteList(ctx context.Context, req *pb.UserCurReq, 
 			go addFavouriteVideoList(videoIdList[j], req.CurId, favoriteVideoList, &wg)
 		}
 		wg.Wait()
-		rsp.StatusCode = 0
-		rsp.StatusMsg = "查询成功"
 		rsp.Video = *favoriteVideoList
 		return nil
 	}
@@ -573,8 +461,6 @@ func (e *LikeService) TotalFavourite(ctx context.Context, req *pb.IdReq, rsp *pb
 		UserId: req.Id,
 	})
 	if err != nil {
-		rsp.StatusCode = -1
-		rsp.StatusMsg = "查询失败"
 		rsp.Count = 0
 		return err
 	}
@@ -593,8 +479,6 @@ func (e *LikeService) TotalFavourite(ctx context.Context, req *pb.IdReq, rsp *pb
 	for _, count := range *videoLikeCountList {
 		sum += count
 	}
-	rsp.StatusCode = 0
-	rsp.StatusMsg = "查询成功"
 	rsp.Count = sum
 	return nil
 }
@@ -608,21 +492,15 @@ func (e *LikeService) FavouriteVideoCount(ctx context.Context, req *pb.IdReq, rs
 	if n, err := model.RdbLikeUserId.Exists(model.Ctx, strUserId).Result(); n > 0 {
 		//如果有问题，说明查询redis失败,返回默认0,返回错误信息
 		if err != nil {
-			rsp.StatusCode = -1
-			rsp.StatusMsg = "查询失败"
 			rsp.Count = 0
 			return err
 		} else {
 			count, err := model.RdbLikeUserId.SCard(model.Ctx, strUserId).Result()
 			//如果有问题，说明操作redis失败,返回默认0,返回错误信息
 			if err != nil {
-				rsp.StatusCode = -1
-				rsp.StatusMsg = "查询失败"
 				rsp.Count = 0
 				return err
 			}
-			rsp.StatusCode = 0
-			rsp.StatusMsg = "查询成功"
 			rsp.Count = count
 			return nil //去掉DefaultRedisValue
 
@@ -632,8 +510,6 @@ func (e *LikeService) FavouriteVideoCount(ctx context.Context, req *pb.IdReq, rs
 		//key:strUserId，加入value:DefaultRedisValue,过期才会删，防止删最后一个数据的时候数据库还没更新完出现脏读，或者数据库操作失败造成的脏读
 		if _, err := model.RdbLikeUserId.SAdd(model.Ctx, strUserId, config.DefaultRedisValue).Result(); err != nil {
 			model.RdbLikeUserId.Del(model.Ctx, strUserId)
-			rsp.StatusCode = -1
-			rsp.StatusMsg = "查询失败"
 			rsp.Count = 0
 			return err
 		}
@@ -642,16 +518,12 @@ func (e *LikeService) FavouriteVideoCount(ctx context.Context, req *pb.IdReq, rs
 			time.Duration(config.OneMonth)*time.Second).Result()
 		if err != nil {
 			model.RdbLikeUserId.Del(model.Ctx, strUserId)
-			rsp.StatusCode = -1
-			rsp.StatusMsg = "查询失败"
 			rsp.Count = 0
 			return err
 		}
 		videoIdList, err := model.GetLikeVideoIdList(req.Id)
 		//如果有问题，说明查询数据库失败，返回默认0,返回错误信息："get likeVideoIdList failed"
 		if err != nil {
-			rsp.StatusCode = -1
-			rsp.StatusMsg = "查询失败"
 			rsp.Count = 0
 			return err
 		}
@@ -659,8 +531,6 @@ func (e *LikeService) FavouriteVideoCount(ctx context.Context, req *pb.IdReq, rs
 		for _, likeVideoId := range videoIdList {
 			if _, err := model.RdbLikeUserId.SAdd(model.Ctx, strUserId, likeVideoId).Result(); err != nil {
 				model.RdbLikeUserId.Del(model.Ctx, strUserId)
-				rsp.StatusCode = -1
-				rsp.StatusMsg = "查询失败"
 				rsp.Count = 0
 				return err
 			}
@@ -669,13 +539,9 @@ func (e *LikeService) FavouriteVideoCount(ctx context.Context, req *pb.IdReq, rs
 		count, err := model.RdbLikeUserId.SCard(model.Ctx, strUserId).Result()
 		//如果有问题，说明操作redis失败,返回默认0,返回错误信息
 		if err != nil {
-			rsp.StatusCode = -1
-			rsp.StatusMsg = "查询失败"
 			rsp.Count = 0
 			return err
 		}
-		rsp.StatusCode = 0
-		rsp.StatusMsg = "查询成功"
 		rsp.Count = count
 		return nil //去掉DefaultRedisValue
 	}

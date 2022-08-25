@@ -20,11 +20,9 @@ func (e *VideoService) Feed(ctx context.Context, req *pb.FeedReq, rsp *pb.FeedRs
 	//创建对应返回视频的切片数组，提前将切片的容量设置好，可以减少切片扩容的性能
 	videos := make([]model.FeedVideo, 0, config.VideoCount)
 	//根据传入的时间，获得传入时间前n个视频，可以通过config.videoCount来控制
-	lastTime, _ := time.Parse(config.DateTime, req.LatestTime)
+	lastTime := time.Unix(req.LatestTime, 0)
 	tableVideos, err := model.GetVideosByLastTime(lastTime)
 	if err != nil {
-		rsp.StatusCode = -1
-		rsp.StatusMsg = "Feed流获取失败"
 		rsp.NextTime = 0
 		rsp.VideoList = nil
 		return err
@@ -32,8 +30,6 @@ func (e *VideoService) Feed(ctx context.Context, req *pb.FeedReq, rsp *pb.FeedRs
 	//将数据通过copyVideos进行处理，在拷贝的过程中对数据进行组装
 	err = copyVideos(&videos, &tableVideos, req.UserId)
 	if err != nil {
-		rsp.StatusCode = -1
-		rsp.StatusMsg = "Feed流获取失败"
 		rsp.NextTime = 0
 		rsp.VideoList = nil
 		return err
@@ -42,8 +38,6 @@ func (e *VideoService) Feed(ctx context.Context, req *pb.FeedReq, rsp *pb.FeedRs
 	var tmpVideo []*pb.Video
 	gconv.Struct(videos, &tmpVideo)
 
-	rsp.StatusCode = 0
-	rsp.StatusMsg = "Feed流获取成功"
 	rsp.NextTime = tableVideos[len(tableVideos)-1].PublishTime.Unix()
 	rsp.VideoList = tmpVideo
 
@@ -58,8 +52,6 @@ func (e *VideoService) GetVideo(ctx context.Context, req *pb.GetVideoReq, rsp *p
 	data, err := model.GetVideoByVideoId(req.VideoId)
 	if err != nil {
 		rsp.Video = nil
-		rsp.StatusCode = -1
-		rsp.StatusMsg = "视频获取失败"
 		return err
 	}
 
@@ -69,8 +61,6 @@ func (e *VideoService) GetVideo(ctx context.Context, req *pb.GetVideoReq, rsp *p
 	gconv.Struct(video, &tmpVideo)
 
 	rsp.Video = tmpVideo
-	rsp.StatusCode = 0
-	rsp.StatusMsg = "视频获取成功"
 	return nil
 }
 
@@ -83,8 +73,6 @@ func (e *VideoService) Publish(ctx context.Context, req *pb.PublishReq, rsp *pb.
 
 	err := uploadQiniu(file, videoName, req.FileSize)
 	if err != nil {
-		rsp.StatusCode = -1
-		rsp.StatusMsg = "视频发布失败"
 		return err
 	}
 
@@ -94,12 +82,8 @@ func (e *VideoService) Publish(ctx context.Context, req *pb.PublishReq, rsp *pb.
 	//组装并持久化
 	err = model.Save(videoName, imageName, req.UserId, req.Title)
 	if err != nil {
-		rsp.StatusCode = -1
-		rsp.StatusMsg = "视频发布失败"
 		return err
 	}
-	rsp.StatusCode = -1
-	rsp.StatusMsg = "视频发布成功"
 	return nil
 }
 
@@ -109,8 +93,6 @@ func (e *VideoService) GetPublishList(ctx context.Context, req *pb.PublishListRe
 	data, err := model.GetVideosByAuthorId(req.UserId)
 	if err != nil {
 		rsp.Video = nil
-		rsp.StatusCode = -1
-		rsp.StatusMsg = "视频列表获取失败"
 		return err
 	}
 	//提前定义好切片长度
@@ -119,8 +101,6 @@ func (e *VideoService) GetPublishList(ctx context.Context, req *pb.PublishListRe
 	err = copyVideos(&result, &data, req.CurId)
 	if err != nil {
 		rsp.Video = nil
-		rsp.StatusCode = -1
-		rsp.StatusMsg = "视频列表获取失败"
 		return err
 	}
 	//如果数据没有问题，则直接返回
@@ -128,9 +108,6 @@ func (e *VideoService) GetPublishList(ctx context.Context, req *pb.PublishListRe
 	gconv.Struct(result, &tmpVideo)
 
 	rsp.Video = tmpVideo
-	rsp.StatusCode = 0
-	rsp.StatusMsg = "视频列表获取成功"
-
 	return nil
 }
 
@@ -142,13 +119,10 @@ func (e *VideoService) GetVideoIdList(ctx context.Context, req *pb.VideoIdReq, r
 	//如果出现问题，返回对应到空，并且返回error
 	if result.Error != nil {
 		rsp.VideoId = nil
-		rsp.StatusCode = -1
-		rsp.StatusMsg = "视频Id获取失败"
 		return result.Error
 	}
 
 	rsp.VideoId = id
-	rsp.StatusCode = 0
-	rsp.StatusMsg = "视频Id获取成功"
+
 	return nil
 }

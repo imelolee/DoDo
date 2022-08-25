@@ -25,8 +25,6 @@ message ActionReq{
 }
 
 message ActionRsp{
-	int64 status_code = 1;
-	string status_msg = 2;
 }
 
 message UserCurReq{
@@ -35,9 +33,7 @@ message UserCurReq{
 }
 
 message BoolRsp{
-	int64 status_code = 1;
-	string status_msg = 2;
-	bool flag = 3;
+	bool flag = 1;
 }
 
 message IdReq{
@@ -45,14 +41,10 @@ message IdReq{
 }
 
 message CountRsp{
-	int64 status_code = 1;
-	string status_msg = 2;
-	int64 count = 3;
+	int64 count = 1;
 }
 
 message FavouriteRsp{
-	int64 status_code = 1;
-	string status_msg = 2;
 }
 
 message User{
@@ -75,7 +67,5 @@ message Video{
 }
 
 message FavouriteListRsp{
-	int64 status_code = 1;
-	string status_msg = 2;
-	repeated Video video = 3;
+	repeated Video video = 1;
 }
