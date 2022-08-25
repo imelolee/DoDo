@@ -6,7 +6,7 @@ import (
 	pb "commentService/proto"
 	"context"
 	"github.com/gogf/gf/util/gconv"
-	"log"
+	log "go-micro.dev/v4/logger"
 	"sort"
 	"strconv"
 	"sync"
@@ -19,28 +19,21 @@ type CommentService struct{}
 
 // CountFromVideoId 使用video id 查询Comment数量
 func (e *CommentService) CountFromVideoId(ctx context.Context, req *pb.IdReq, rsp *pb.CountRsp) error {
-	log.Printf("Received CommentService.CountFromVideoId request: %v", req)
+	log.Infof("Received CommentService.CountFromVideoId request: %v", req)
 	//先在缓存中查
 	cnt, err := model.RdbVCid.SCard(model.Ctx, strconv.FormatInt(req.Id, 10)).Result()
 	if err != nil { //若查询缓存出错，则打印log
-		//return 0, err
-		log.Println("count from redis error:", err)
+		rsp.Count = 0
+		return err
 	}
-	log.Println("comment count redis :", cnt)
 	//1.缓存中查到了数量，则返回数量值-1（去除0值）
 	if cnt != 0 {
-		rsp.StatusCode = 0
-		rsp.StatusMsg = "查询成功"
 		rsp.Count = cnt
 		return nil
 	}
 	//2.缓存中查不到则去数据库查
 	cnt, err = model.Count(req.Id)
-	log.Println("comment count dao:", cnt)
 	if err != nil {
-		log.Println("comment count dao err:", err)
-		rsp.StatusCode = -1
-		rsp.StatusMsg = "查询失败"
 		rsp.Count = 0
 		return err
 	}
@@ -51,20 +44,18 @@ func (e *CommentService) CountFromVideoId(ctx context.Context, req *pb.IdReq, rs
 		//先在redis中存储一个-1值，防止脏读
 		_, err := model.RdbVCid.SAdd(model.Ctx, strconv.Itoa(int(req.Id)), config.DefaultRedisValue).Result()
 		if err != nil { //若存储redis失败，则直接返回
-			log.Println("redis save one vId - cId 0 failed")
 			return
 		}
 		//设置key值过期时间
 		_, err = model.RdbVCid.Expire(model.Ctx, strconv.Itoa(int(req.Id)),
 			time.Duration(config.OneMonth)*time.Second).Result()
 		if err != nil {
-			log.Println("redis save one vId - cId expire failed")
+			return
 		}
 		//评论id循环存入redis
 		for _, commentId := range cList {
 			insertRedisVideoCommentId(strconv.Itoa(int(req.Id)), commentId)
 		}
-		log.Println("count comment save ids in redis")
 	}()
 	//返回结果
 	return nil
@@ -72,7 +63,7 @@ func (e *CommentService) CountFromVideoId(ctx context.Context, req *pb.IdReq, rs
 
 // Send 发表评论
 func (e *CommentService) Send(ctx context.Context, req *pb.CommentReq, rsp *pb.CommentRsp) error {
-	log.Printf("Received CommentService.Send request: %v", req)
+	log.Infof("Received CommentService.Send request: %v", req)
 	//数据准备
 	var commentInfo model.Comment
 	commentInfo.VideoId = req.Comment.VideoId                                       //评论视频id传入
@@ -84,8 +75,6 @@ func (e *CommentService) Send(ctx context.Context, req *pb.CommentReq, rsp *pb.C
 	//1.评论信息存储：
 	commentRtn, err := model.InsertComment(commentInfo)
 	if err != nil {
-		rsp.StatusCode = -1
-		rsp.StatusMsg = "评论失败"
 		rsp.CommentInfo = &pb.CommentInfo{}
 		return err
 	}
@@ -99,17 +88,12 @@ func (e *CommentService) Send(ctx context.Context, req *pb.CommentReq, rsp *pb.C
 	})
 
 	if err != nil {
-		rsp.StatusCode = -1
-		rsp.StatusMsg = "评论失败"
 		rsp.CommentInfo = &pb.CommentInfo{}
 		return err
 	}
 
 	var user userModel.FeedUser
-	err = gconv.Struct(userRsp.User, &user)
-	if err != nil {
-		log.Printf("类型转换失败:", err)
-	}
+	gconv.Struct(userRsp.User, &user)
 
 	//3.拼接
 	commentData := model.CommentInfo{
@@ -121,45 +105,38 @@ func (e *CommentService) Send(ctx context.Context, req *pb.CommentReq, rsp *pb.C
 	//将此发表的评论id存入redis
 	go func() {
 		insertRedisVideoCommentId(strconv.Itoa(int(req.Comment.VideoId)), strconv.Itoa(int(commentRtn.Id)))
-		log.Println("send comment save in redis")
 	}()
 
 	var comment pb.CommentInfo
-	err = gconv.Struct(commentData, &comment)
-	if err != nil {
-		log.Printf("类型转换失败:", err)
-	}
+	gconv.Struct(commentData, &comment)
 
 	//返回结果
-	rsp.StatusCode = 0
-	rsp.StatusMsg = "评论成功"
 	rsp.CommentInfo = &comment
 	return nil
 }
 
 // Delete 删除评论，传入评论id
 func (e *CommentService) Delete(ctx context.Context, req *pb.IdReq, rsp *pb.DelRsp) error {
-	log.Printf("Received CommentService.DelComment request: %v", req)
+	log.Infof("Received CommentService.DelComment request: %v", req)
 	//1.先查询redis，若有则删除，返回客户端-再go协程删除数据库；无则在数据库中删除，返回客户端。
 	n, err := model.RdbCVid.Exists(model.Ctx, strconv.FormatInt(req.Id, 10)).Result()
 	if err != nil {
-		log.Println(err)
+		return err
 	}
 	if n > 0 { //在缓存中有此值，则找出来删除，然后返回
 		vid, err := model.RdbCVid.Get(model.Ctx, strconv.FormatInt(req.Id, 10)).Result()
 		if err != nil { //没找到，返回err
-			log.Println("redis find CV err:", err)
+			return err
 		}
 		//删除，两个redis都要删除
-		del1, err := model.RdbCVid.Del(model.Ctx, strconv.FormatInt(req.Id, 10)).Result()
+		_, err = model.RdbCVid.Del(model.Ctx, strconv.FormatInt(req.Id, 10)).Result()
 		if err != nil {
-			log.Println(err)
+			return err
 		}
-		del2, err := model.RdbVCid.SRem(model.Ctx, vid, strconv.FormatInt(req.Id, 10)).Result()
+		_, err = model.RdbVCid.SRem(model.Ctx, vid, strconv.FormatInt(req.Id, 10)).Result()
 		if err != nil {
-			log.Println(err)
+			return err
 		}
-		log.Println("Delete comment in Redis success:", del1, del2) //del1、del2代表删除了几条数据
 
 		//使用mq进行数据库中评论的删除-评论状态更新
 		//评论id传入消息队列
@@ -169,32 +146,22 @@ func (e *CommentService) Delete(ctx context.Context, req *pb.IdReq, rsp *pb.DelR
 	//不在内存中，则直接走数据库删除
 	err = model.DeleteComment(req.Id)
 	if err != nil {
-		rsp.StatusCode = -1
-		rsp.StatusMsg = "删除失败"
 		return err
-	} else {
-		rsp.StatusCode = 0
-		rsp.StatusMsg = "删除成功"
 	}
 	return nil
 }
 
 // GetList 查看评论列表-返回评论list
 func (e *CommentService) GetList(ctx context.Context, req *pb.VideoUserReq, rsp *pb.CommentListRsp) error {
-	log.Printf("Received CommentService.GetList request: %v", req)
+	log.Infof("Received CommentService.GetList request: %v", req)
 	//1.先查询评论列表信息
 	commentList, err := model.GetCommentList(req.VideoId)
 	if err != nil {
-		log.Println("CommentService-GetList: return err: " + err.Error()) //函数返回提示错误信息
-		rsp.StatusCode = -1
-		rsp.StatusMsg = "列表获取失败"
 		rsp.CommentInfo = nil
 		return err
 	}
 	//当前有0条评论
 	if commentList == nil {
-		rsp.StatusCode = 0
-		rsp.StatusMsg = "列表获取成功"
 		rsp.CommentInfo = nil
 		return nil
 	}
@@ -227,8 +194,7 @@ func (e *CommentService) GetList(ctx context.Context, req *pb.VideoUserReq, rsp 
 		//1.先在缓存中查此视频是否已有评论列表
 		cnt, err := model.RdbVCid.SCard(model.Ctx, strconv.FormatInt(req.VideoId, 10)).Result()
 		if err != nil { //若查询缓存出错，则打印log
-			//return 0, err
-			log.Println("count from redis error:", err)
+			return
 		}
 		//2.缓存中查到了数量大于0，则说明数据正常，不用更新缓存
 		if cnt > 0 {
@@ -236,33 +202,28 @@ func (e *CommentService) GetList(ctx context.Context, req *pb.VideoUserReq, rsp 
 		}
 		//3.缓存中数据不正确，更新缓存：
 		//先在redis中存储一个-1 值，防止脏读
-		_, _err := model.RdbVCid.SAdd(model.Ctx, strconv.Itoa(int(req.VideoId)), config.DefaultRedisValue).Result()
-		if _err != nil { //若存储redis失败，则直接返回
-			log.Println("redis save one vId - cId 0 failed")
+		_, err = model.RdbVCid.SAdd(model.Ctx, strconv.Itoa(int(req.VideoId)), config.DefaultRedisValue).Result()
+		if err != nil { //若存储redis失败，则直接返回
 			return
 		}
 		//设置key值过期时间
 		_, err = model.RdbVCid.Expire(model.Ctx, strconv.Itoa(int(req.VideoId)),
 			time.Duration(config.OneMonth)*time.Second).Result()
 		if err != nil {
-			log.Println("redis save one vId - cId expire failed")
+			return
 		}
 		//将评论id循环存入redis
 		for _, _comment := range commentInfoList {
 			insertRedisVideoCommentId(strconv.Itoa(int(req.VideoId)), strconv.Itoa(int(_comment.Id)))
 		}
-		log.Println("comment list save ids in redis")
 	}()
 
 	var comInfoList []*pb.CommentInfo
 	err = gconv.Struct(commentInfoList, &comInfoList)
 	if err != nil {
-		log.Printf("类型转换失败:", err)
+		return err
 	}
 
-	log.Println("CommentService-GetList: return list success") //函数执行成功，返回正确信息
-	rsp.StatusCode = 0
-	rsp.StatusMsg = "列表获取成功"
 	rsp.CommentInfo = comInfoList
 	return nil
 }
