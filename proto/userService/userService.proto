@@ -27,16 +27,12 @@ message UserReq{
 }
 
 message UserListRsp{
-	int64 status_code = 1;
-	string status_msg = 2;
-	repeated User user = 3;
+	repeated User user = 1;
 }
 
 
 message UserRsp{
-	int64 status_code = 1;
-	string status_msg = 2;
-	User user = 3;
+	User user = 1;
 }
 
 message UsernameReq {
@@ -48,9 +44,7 @@ message IdReq {
 }
 
 message BoolRsp{
-	int64 status_code = 1;
-	string status_msg = 2;
-	bool flag = 3;
+	bool flag = 1;
 }
 
 message FeedUser{
@@ -64,9 +58,7 @@ message FeedUser{
 }
 
 message FeedUserRsp{
-	int64 status_code = 1;
-	string status_msg = 2;
-	FeedUser user = 3;
+	FeedUser user = 1;
 }
 
 message CurIdReq {

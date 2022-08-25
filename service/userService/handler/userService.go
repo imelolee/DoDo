@@ -19,13 +19,9 @@ func (e *UserService) GetTableUserList(ctx context.Context, req *pb.Req, rsp *pb
 	tableUsers, err := model.GetTableUserList()
 	if err != nil {
 		rsp.User = nil
-		rsp.StatusCode = -1
-		rsp.StatusMsg = "用户查询失败"
 		return err
 	}
 	rsp.User = tableUsers
-	rsp.StatusCode = 0
-	rsp.StatusMsg = "用户查询成功"
 	return nil
 }
 
@@ -34,13 +30,9 @@ func (e *UserService) GetTableUserByUsername(ctx context.Context, req *pb.Userna
 	tableUser, err := model.GetTableUserByUsername(req.Name)
 	if err != nil {
 		rsp.User = nil
-		rsp.StatusCode = -1
-		rsp.StatusMsg = "用户查询失败"
 		return err
 	}
 	rsp.User = tableUser
-	rsp.StatusCode = 0
-	rsp.StatusMsg = "用户查询成功"
 	return nil
 }
 
@@ -49,12 +41,9 @@ func (e *UserService) GetTableUserById(ctx context.Context, req *pb.IdReq, rsp *
 	tableUser, err := model.GetTableUserById(req.Id)
 	if err != nil {
 		rsp.User = nil
-		rsp.StatusCode = -1
-		rsp.StatusMsg = "用户查询失败"
+
 	}
 	rsp.User = tableUser
-	rsp.StatusCode = 0
-	rsp.StatusMsg = "用户查询成功"
 	return nil
 }
 
@@ -62,14 +51,10 @@ func (e *UserService) InsertTableUser(ctx context.Context, req *pb.UserReq, rsp 
 	log.Infof("Received UserService.GetTableUserById request: %v\n", req)
 	success := model.InsertTableUser(req.User)
 	if success == false {
-		rsp.StatusCode = -1
-		rsp.StatusMsg = "用户插入失败"
 		rsp.Flag = false
 		return nil
 	} else {
 		rsp.Flag = success
-		rsp.StatusCode = 0
-		rsp.StatusMsg = "用户插入成功"
 		return nil
 	}
 
@@ -89,8 +74,6 @@ func (e *UserService) GetFeedUserById(ctx context.Context, req *pb.IdReq, rsp *p
 	tableUser, err := model.GetTableUserById(req.Id)
 	if err != nil {
 		rsp.User = &user
-		rsp.StatusCode = -1
-		rsp.StatusMsg = "用户查询失败"
 		return err
 	}
 	followCount, _ := followModel.GetFollowingCnt(req.Id)
@@ -120,8 +103,6 @@ func (e *UserService) GetFeedUserById(ctx context.Context, req *pb.IdReq, rsp *p
 	err = gconv.Struct(feedUser, &tmpUser)
 
 	rsp.User = tmpUser
-	rsp.StatusCode = 0
-	rsp.StatusMsg = "用户查询成功"
 
 	return nil
 }
@@ -140,8 +121,6 @@ func (e *UserService) GetFeedUserByIdWithCurId(ctx context.Context, req *pb.CurI
 	tableUser, err := model.GetTableUserById(req.Id)
 	if err != nil {
 		rsp.User = &user
-		rsp.StatusCode = -1
-		rsp.StatusMsg = "用户查询失败"
 		return err
 	}
 	followCount, _ := followModel.GetFollowingCnt(req.Id)
@@ -179,8 +158,6 @@ func (e *UserService) GetFeedUserByIdWithCurId(ctx context.Context, req *pb.CurI
 	err = gconv.Struct(tmpUser, &feedUser)
 
 	rsp.User = feedUser
-	rsp.StatusCode = 0
-	rsp.StatusMsg = "用户查询成功"
 
 	return nil
 }
