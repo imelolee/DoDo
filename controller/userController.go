@@ -149,7 +149,7 @@ func Login(c *gin.Context) {
 func UserInfo(c *gin.Context) {
 	user_id := c.Query("user_id")
 	id, _ := strconv.ParseInt(user_id, 10, 64)
-
+	fmt.Println(user_id)
 	userMicro := utils.InitMicro()
 	userClient := userService.NewUserService("userService", userMicro.Client())
 
