@@ -74,8 +74,24 @@ func (e *UserService) GetFeedUserById(ctx context.Context, req *pb.IdReq, rsp *p
 		rsp.User = &user
 		return err
 	}
-	followCount, _ := followModel.GetFollowingCnt(req.Id)
-	followerCount, _ := followModel.GetFollowerCnt(req.Id)
+
+	followMicro := InitMicro()
+	followClient := followService.NewFollowService("followService", followMicro.Client())
+
+	followRsp, err := followClient.GetFollowingCnt(context.TODO(), &followService.UserIdReq{
+		UserId: req.Id,
+	})
+	if err != nil {
+		rsp.User = nil
+		return err
+	}
+	followerRsp, err := followClient.GetFollowerCnt(context.TODO(), &followService.UserIdReq{
+		UserId: req.Id,
+	})
+	if err != nil {
+		rsp.User = nil
+		return err
+	}
 
 	likeMicro := InitMicro()
 	likeClient := likeService.NewLikeService("likeService", likeMicro.Client())
@@ -90,8 +106,8 @@ func (e *UserService) GetFeedUserById(ctx context.Context, req *pb.IdReq, rsp *p
 	feedUser := model.FeedUser{
 		Id:             req.Id,
 		Name:           tableUser.Name,
-		FollowCount:    followCount,
-		FollowerCount:  followerCount,
+		FollowCount:    followRsp.Count,
+		FollowerCount:  followerRsp.Count,
 		IsFollow:       false,
 		TotalFavorited: totalRsp.Count,
 		FavoriteCount:  countRsp.Count,

@@ -2,13 +2,13 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"github.com/genleel/DoDo/model"
 	"github.com/genleel/DoDo/proto/videoService"
 	"github.com/genleel/DoDo/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/gogf/gf/util/gconv"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -28,7 +28,7 @@ type VideoListResponse struct {
 // Feed /feed/
 func Feed(c *gin.Context) {
 	inputTime := c.Query("latest_time")
-	log.Printf("传入的时间:" + inputTime)
+	fmt.Println("传入的时间:" + inputTime)
 	var lastTime time.Time
 	if inputTime != "0" {
 		me, _ := strconv.ParseInt(inputTime, 10, 64)
@@ -36,9 +36,9 @@ func Feed(c *gin.Context) {
 	} else {
 		lastTime = time.Now()
 	}
-	log.Printf("获取到时间戳%v", lastTime)
+	fmt.Printf("获取到时间戳:%v", lastTime)
 	userId, _ := strconv.ParseInt(c.GetString("userId"), 10, 64)
-	log.Printf("获取到用户id:%v\n", userId)
+	fmt.Printf("获取到用户id:%v\n", userId)
 
 	videoMicro := utils.InitMicro()
 	videoClient := videoService.NewVideoService("videoService", videoMicro.Client())
@@ -49,7 +49,7 @@ func Feed(c *gin.Context) {
 	})
 
 	if err != nil {
-		log.Printf("videoService.Feed err：%v", err)
+		fmt.Printf("videoService.Feed err：%v", err)
 		c.JSON(http.StatusOK, FeedResponse{
 			Response: Response{StatusCode: 1, StatusMsg: "获取视频流失败"},
 		})
@@ -70,11 +70,11 @@ func Feed(c *gin.Context) {
 func Publish(c *gin.Context) {
 	data, err := c.FormFile("data")
 	userId, _ := strconv.ParseInt(c.GetString("userId"), 10, 64)
-	log.Printf("获取到用户id:%v\n", userId)
+	fmt.Printf("获取到用户id:%v\n", userId)
 	title := c.PostForm("title")
-	log.Printf("获取到视频title:%v\n", title)
+	fmt.Printf("获取到视频title:%v\n", title)
 	if err != nil {
-		log.Printf("获取视频流失败:%v", err)
+		fmt.Printf("获取视频流失败:%v", err)
 		c.JSON(http.StatusOK, Response{
 			StatusCode: 1,
 			StatusMsg:  err.Error(),
@@ -93,7 +93,7 @@ func Publish(c *gin.Context) {
 		Title:  title,
 	})
 	if err != nil {
-		log.Printf("videoService.Publish err：%v", err)
+		fmt.Printf("videoService.Publish err：%v", err)
 		c.JSON(http.StatusOK, Response{
 			StatusCode: 1,
 			StatusMsg:  err.Error(),
@@ -111,9 +111,9 @@ func Publish(c *gin.Context) {
 func PublishList(c *gin.Context) {
 	user_Id, _ := c.GetQuery("user_id")
 	userId, _ := strconv.ParseInt(user_Id, 10, 64)
-	log.Printf("获取到用户id:%v\n", userId)
+	fmt.Printf("获取到用户id:%v\n", userId)
 	curId, _ := strconv.ParseInt(c.GetString("userId"), 10, 64)
-	log.Printf("获取到当前用户id:%v\n", curId)
+	fmt.Printf("获取到当前用户id:%v\n", curId)
 	videoMicro := utils.InitMicro()
 	videoClient := videoService.NewVideoService("videoService", videoMicro.Client())
 	listRsp, err := videoClient.GetPublishList(context.TODO(), &videoService.PublishListReq{
@@ -121,7 +121,7 @@ func PublishList(c *gin.Context) {
 		CurId:  curId,
 	})
 	if err != nil {
-		log.Printf("videoService.GetPublishList err：%v\n", err)
+		fmt.Printf("videoService.GetPublishList err：%v\n", err)
 		c.JSON(http.StatusOK, VideoListResponse{
 			Response: Response{StatusCode: 1, StatusMsg: "获取视频列表失败"},
 		})
