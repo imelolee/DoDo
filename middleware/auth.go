@@ -1,10 +1,8 @@
 package middleware
 
 import (
-	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v4"
-	"log"
 	"net/http"
 	"strings"
 )
@@ -36,9 +34,9 @@ func Auth() gin.HandlerFunc {
 				StatusMsg:  "Token Error",
 			})
 		} else {
-			log.Printf("token 正确")
+			println("Token校验正确.")
 		}
-		context.Set("userId", token.ID)
+		context.Set("userId", token)
 		context.Next()
 	}
 }
@@ -60,8 +58,8 @@ func AuthWithoutLogin() gin.HandlerFunc {
 					StatusMsg:  "Token Error",
 				})
 			} else {
-				userId = token.ID
-				println("token 正确")
+				userId = token.Id
+				println("Token校验正确.")
 			}
 		}
 		context.Set("userId", userId)
@@ -70,12 +68,12 @@ func AuthWithoutLogin() gin.HandlerFunc {
 }
 
 // parseToken 解析token
-func parseToken(token string) (*jwt.RegisteredClaims, error) {
+func parseToken(token string) (*jwt.StandardClaims, error) {
 	jwtToken, err := jwt.ParseWithClaims(token, &jwt.StandardClaims{}, func(token *jwt.Token) (i interface{}, e error) {
 		return []byte("DoDo"), nil
 	})
 	if err == nil && jwtToken != nil {
-		if claim, ok := jwtToken.Claims.(*jwt.RegisteredClaims); ok && jwtToken.Valid {
+		if claim, ok := jwtToken.Claims.(*jwt.StandardClaims); ok && jwtToken.Valid {
 			return claim, nil
 		}
 	}
@@ -87,7 +85,6 @@ func parseToken(token string) (*jwt.RegisteredClaims, error) {
 func AuthBody() gin.HandlerFunc {
 	return func(context *gin.Context) {
 		auth := context.Request.PostFormValue("token")
-		fmt.Printf("%v \n", auth)
 
 		if len(auth) == 0 {
 			context.Abort()
@@ -105,9 +102,9 @@ func AuthBody() gin.HandlerFunc {
 				StatusMsg:  "Token Error",
 			})
 		} else {
-			println("token 正确")
+			println("Token校验正确.")
 		}
-		context.Set("userId", token.ID)
+		context.Set("userId", token.Id)
 		context.Next()
 	}
 }
