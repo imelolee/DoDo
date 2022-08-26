@@ -11,7 +11,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gogf/gf/util/gconv"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -38,6 +37,8 @@ func Register(c *gin.Context) {
 	username := c.Query("username")
 	password := c.Query("password")
 
+	fmt.Println("注册用户：", username)
+
 	userMicro := utils.InitMicro()
 	userClient := userService.NewUserService("userService", userMicro.Client())
 
@@ -45,7 +46,7 @@ func Register(c *gin.Context) {
 		Name: username,
 	})
 	if err != nil {
-		log.Println("userClient.GetTableUserByUsername err:", err)
+		fmt.Println("userClient.GetTableUserByUsername err:", err)
 	}
 
 	if username == userRsp.User.Name {
@@ -65,17 +66,17 @@ func Register(c *gin.Context) {
 			User: tmpUser,
 		})
 		if insertRsp.Flag != true || err != nil {
-			log.Println("Insert User Failed.")
+			fmt.Println("Insert User Failed.")
 		}
 		userRsp, err := userClient.GetTableUserByUsername(context.TODO(), &userService.UsernameReq{
 			Name: username,
 		})
 		if err != nil {
-			log.Println("userClient.GetTableUserByUsername err:", err)
+			fmt.Println("userClient.GetTableUserByUsername err:", err)
 		}
 
 		token := GenerateToken(userRsp.User)
-		log.Println("注册的用户id: ", userRsp.User.Id)
+		fmt.Println("注册的用户id: ", userRsp.User.Id)
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: Response{StatusCode: 0},
 			UserId:   userRsp.User.Id,
@@ -119,16 +120,15 @@ func GenerateToken(user *userService.User) string {
 func Login(c *gin.Context) {
 	username := c.Query("username")
 	password := c.Query("password")
-	fmt.Println(username)
+	fmt.Println("登录用户：", username)
 	encodePwd := utils.Encoder(password)
-	fmt.Println(encodePwd)
 	userMicro := utils.InitMicro()
 	userClient := userService.NewUserService("userService", userMicro.Client())
 	userRsp, err := userClient.GetTableUserByUsername(context.TODO(), &userService.UsernameReq{
 		Name: username,
 	})
 	if err != nil {
-		log.Println("userClient.GetTableUserByUsername err:", err)
+		fmt.Println("userClient.GetTableUserByUsername err:", err)
 	}
 
 	if encodePwd == userRsp.User.Password {
@@ -149,7 +149,6 @@ func Login(c *gin.Context) {
 func UserInfo(c *gin.Context) {
 	user_id := c.Query("user_id")
 	id, _ := strconv.ParseInt(user_id, 10, 64)
-
 	userMicro := utils.InitMicro()
 	userClient := userService.NewUserService("userService", userMicro.Client())
 

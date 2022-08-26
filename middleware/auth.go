@@ -1,9 +1,8 @@
 package middleware
 
 import (
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v4"
-	"log"
 	"net/http"
 	"strings"
 )
@@ -35,9 +34,9 @@ func Auth() gin.HandlerFunc {
 				StatusMsg:  "Token Error",
 			})
 		} else {
-			log.Printf("token 正确")
+			println("Token校验正确.")
 		}
-		context.Set("userId", token.ID)
+		context.Set("userId", token)
 		context.Next()
 	}
 }
@@ -59,8 +58,8 @@ func AuthWithoutLogin() gin.HandlerFunc {
 					StatusMsg:  "Token Error",
 				})
 			} else {
-				userId = token.ID
-				println("token 正确")
+				userId = token.Id
+				println("Token校验正确.")
 			}
 		}
 		context.Set("userId", userId)
@@ -69,14 +68,43 @@ func AuthWithoutLogin() gin.HandlerFunc {
 }
 
 // parseToken 解析token
-func parseToken(token string) (*jwt.RegisteredClaims, error) {
+func parseToken(token string) (*jwt.StandardClaims, error) {
 	jwtToken, err := jwt.ParseWithClaims(token, &jwt.StandardClaims{}, func(token *jwt.Token) (i interface{}, e error) {
 		return []byte("DoDo"), nil
 	})
 	if err == nil && jwtToken != nil {
-		if claim, ok := jwtToken.Claims.(*jwt.RegisteredClaims); ok && jwtToken.Valid {
+		if claim, ok := jwtToken.Claims.(*jwt.StandardClaims); ok && jwtToken.Valid {
 			return claim, nil
 		}
 	}
 	return nil, err
+}
+
+// AuthBody 鉴权中间件
+// 若用户携带的token正确,解析token,将userId放入上下文context中并放行;否则,返回错误信息
+func AuthBody() gin.HandlerFunc {
+	return func(context *gin.Context) {
+		auth := context.Request.PostFormValue("token")
+
+		if len(auth) == 0 {
+			context.Abort()
+			context.JSON(http.StatusUnauthorized, Response{
+				StatusCode: -1,
+				StatusMsg:  "Unauthorized",
+			})
+		}
+		auth = strings.Fields(auth)[1]
+		token, err := parseToken(auth)
+		if err != nil {
+			context.Abort()
+			context.JSON(http.StatusUnauthorized, Response{
+				StatusCode: -1,
+				StatusMsg:  "Token Error",
+			})
+		} else {
+			println("Token校验正确.")
+		}
+		context.Set("userId", token.Id)
+		context.Next()
+	}
 }
