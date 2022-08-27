@@ -93,7 +93,7 @@ func creatVideo(video *model.FeedVideo, data *model.Video, userId int64) {
 }
 
 // 七牛云上传
-func uploadQiniu(file []byte, fileName string, fileSize int64) error {
+func uploadQiniu(file []byte, fileName string, fileSize int64, fileExt string) error {
 
 	putPolicy := storage.PutPolicy{
 		Scope: config.Bucket,
@@ -102,7 +102,7 @@ func uploadQiniu(file []byte, fileName string, fileSize int64) error {
 	upToken := putPolicy.UploadToken(mac)
 
 	cfg := storage.Config{
-		Zone:          &storage.ZoneHuadong,
+		Zone:          &storage.ZoneHuabei,
 		UseCdnDomains: false,
 		UseHTTPS:      false,
 	}
