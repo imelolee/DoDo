@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/genleel/DoDo/model"
 	"github.com/genleel/DoDo/proto/videoService"
 	"github.com/genleel/DoDo/utils"
@@ -10,6 +11,7 @@ import (
 	"github.com/gogf/gf/util/gconv"
 	"io/ioutil"
 	"net/http"
+	"path"
 	"strconv"
 	"time"
 )
@@ -32,7 +34,8 @@ func Feed(c *gin.Context) {
 	var lastTime time.Time
 	if inputTime != "0" {
 		me, _ := strconv.ParseInt(inputTime, 10, 64)
-		lastTime = time.Unix(me, 0)
+		// 毫秒时间戳转换
+		lastTime = time.Unix(me/1000, 0)
 	} else {
 		lastTime = time.Now()
 	}
@@ -88,9 +91,11 @@ func Publish(c *gin.Context) {
 	videoMicro := utils.InitMicro()
 	videoClient := videoService.NewVideoService("videoService", videoMicro.Client())
 	_, err = videoClient.Publish(context.TODO(), &videoService.PublishReq{
-		Data:   byteData,
-		UserId: userId,
-		Title:  title,
+		Data:     byteData,
+		UserId:   userId,
+		Title:    title,
+		FileSize: data.Size,
+		FileExt:  path.Ext(data.Filename),
 	})
 	if err != nil {
 		fmt.Printf("videoService.Publish err：%v", err)
@@ -109,10 +114,12 @@ func Publish(c *gin.Context) {
 
 // PublishList /publish/list/
 func PublishList(c *gin.Context) {
-	user_Id, _ := c.GetQuery("user_id")
+	user_Id := c.Query("user_id")
 	userId, _ := strconv.ParseInt(user_Id, 10, 64)
 	fmt.Printf("获取到用户id:%v\n", userId)
-	curId, _ := strconv.ParseInt(c.GetString("userId"), 10, 64)
+	curUser, _ := c.Get("userId")
+	cur_id := curUser.(*jwt.StandardClaims).Id
+	curId, _ := strconv.ParseInt(cur_id, 10, 64)
 	fmt.Printf("获取到当前用户id:%v\n", curId)
 	videoMicro := utils.InitMicro()
 	videoClient := videoService.NewVideoService("videoService", videoMicro.Client())

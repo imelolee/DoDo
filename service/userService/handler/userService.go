@@ -114,6 +114,7 @@ func (e *UserService) GetFeedUserById(ctx context.Context, req *pb.IdReq, rsp *p
 	}
 
 	var tmpUser *pb.FeedUser
+	tmpUser = new(pb.FeedUser)
 	err = gconv.Struct(feedUser, &tmpUser)
 
 	rsp.User = tmpUser

@@ -38,7 +38,7 @@ func (e *VideoService) Feed(ctx context.Context, req *pb.FeedReq, rsp *pb.FeedRs
 	var tmpVideo []*pb.Video
 	gconv.Struct(videos, &tmpVideo)
 
-	rsp.NextTime = tableVideos[len(tableVideos)].PublishTime.Unix()
+	rsp.NextTime = tableVideos[0].PublishTime.Unix()
 	//rsp.NextTime = 1661581905178543
 	rsp.VideoList = tmpVideo
 

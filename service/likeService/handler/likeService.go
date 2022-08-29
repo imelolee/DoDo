@@ -114,7 +114,7 @@ func (e *LikeService) FavouriteCount(ctx context.Context, req *pb.IdReq, rsp *pb
 			rsp.Count = 0
 			return err
 		}
-		rsp.Count = count
+		rsp.Count = count - 1
 	} else {
 		//key:strVideoId，加入value:DefaultRedisValue,过期才会删，防止删最后一个数据的时候数据库还没更新完出现脏读，或者数据库操作失败造成的脏读
 		if _, err := model.RdbLikeVideoId.SAdd(model.Ctx, strVideoId, config.DefaultRedisValue).Result(); err != nil {
@@ -150,7 +150,7 @@ func (e *LikeService) FavouriteCount(ctx context.Context, req *pb.IdReq, rsp *pb
 			return err
 		}
 
-		rsp.Count = count
+		rsp.Count = count - 1
 		return nil
 	}
 	return nil
@@ -501,7 +501,7 @@ func (e *LikeService) FavouriteVideoCount(ctx context.Context, req *pb.IdReq, rs
 				rsp.Count = 0
 				return err
 			}
-			rsp.Count = count
+			rsp.Count = count - 1
 			return nil //去掉DefaultRedisValue
 
 		}
@@ -542,7 +542,7 @@ func (e *LikeService) FavouriteVideoCount(ctx context.Context, req *pb.IdReq, rs
 			rsp.Count = 0
 			return err
 		}
-		rsp.Count = count
+		rsp.Count = count - 1
 		return nil //去掉DefaultRedisValue
 	}
 }

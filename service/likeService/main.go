@@ -20,6 +20,7 @@ func main() {
 	model.InitRedis()
 	model.InitDb()
 	model.InitRabbitMQ()
+	model.InitLikeRabbitMQ()
 
 	consulReg := consul.NewRegistry()
 

@@ -43,12 +43,12 @@ func addFavouriteVideoList(videoId int64, curId int64, favoriteVideoList *[]*pb.
 func addVideoLikeCount(videoId int64, videoLikeCountList *[]int64, wg *sync.WaitGroup) {
 	defer wg.Done()
 	//调用FavouriteCount：根据videoId,获取点赞数
-	var self LikeService
-	var ctx context.Context
-	var req *pb.IdReq
-	var rsp *pb.CountRsp
 
-	err := self.FavouriteCount(ctx, req, rsp)
+	likeMicro := InitMicro()
+	likeClient := pb.NewLikeService("likeService", likeMicro.Client())
+	rsp, err := likeClient.FavouriteCount(context.TODO(), &pb.IdReq{
+		Id: videoId,
+	})
 	if err != nil {
 		//如果有错误，输出错误信息，并不加入该视频点赞数
 		log.Printf(err.Error())
