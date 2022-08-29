@@ -51,7 +51,7 @@ func (e *FollowService) GetFollowerCnt(ctx context.Context, req *pb.UserIdReq, r
 	if cnt, _ := model.RdbFollowers.SCard(model.Ctx, strconv.Itoa(int(req.UserId))).Result(); cnt > 0 {
 		// 更新过期时间。
 		model.RdbFollowers.Expire(model.Ctx, strconv.Itoa(int(req.UserId)), config.ExpireTime)
-		rsp.Count = cnt
+		rsp.Count = cnt - 1
 		return nil
 	}
 	// SQL中查询。
@@ -74,7 +74,7 @@ func (e *FollowService) GetFollowingCnt(ctx context.Context, req *pb.UserIdReq, 
 	if cnt, _ := model.RdbFollowing.SCard(model.Ctx, strconv.Itoa(int(req.UserId))).Result(); cnt > 0 {
 		// 更新过期时间。
 		model.RdbFollowing.Expire(model.Ctx, strconv.Itoa(int(req.UserId)), config.ExpireTime)
-		rsp.Count = cnt
+		rsp.Count = cnt - 1
 		return nil
 
 	}
@@ -141,36 +141,23 @@ func (e *FollowService) GetFollowing(ctx context.Context, req *pb.UserIdReq, rsp
 		return nil
 	}
 	// 根据每个id来查询用户信息。
-	len := len(ids)
-	if len > 0 {
-		len -= 1
+	followingNum := len(ids)
+	userMicro := InitMicro()
+	userClient := userService.NewUserService("userService", userMicro.Client())
+	users := make([]pb.FeedUser, followingNum)
+	for i := 0; i < followingNum; i++ {
+
+		userRsp, _ := userClient.GetFeedUserByIdWithCurId(context.TODO(), &userService.CurIdReq{
+			Id:    ids[i],
+			CurId: req.UserId,
+		})
+
+		var tmpUser *pb.FeedUser
+		gconv.Struct(userRsp.User, &tmpUser)
+
+		users[i] = *tmpUser
+
 	}
-	var wg sync.WaitGroup
-	wg.Add(len)
-	users := make([]userModel.FeedUser, len)
-	i, j := 0, 0
-	for ; i < len; j++ {
-		if ids[j] == -1 {
-			continue
-		}
-		go func(i int, idx int64) {
-			defer wg.Done()
-			userMicro := InitMicro()
-			userClient := userService.NewUserService("userService", userMicro.Client())
-
-			userRsp, _ := userClient.GetFeedUserByIdWithCurId(context.TODO(), &userService.CurIdReq{
-				Id:    idx,
-				CurId: req.UserId,
-			})
-
-			var user userModel.FeedUser
-			_ = gconv.Struct(userRsp.User, user)
-
-			users[i] = user
-		}(i, ids[i])
-		i++
-	}
-	wg.Wait()
 	// 返回关注对象列表
 	var followUser []*pb.FeedUser
 	_ = gconv.Struct(users, &followUser)

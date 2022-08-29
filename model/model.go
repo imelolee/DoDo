@@ -36,3 +36,21 @@ type FeedVideo struct {
 	CommentCount  int64 `json:"comment_count"`
 	IsFavorite    bool  `json:"is_favorite"`
 }
+
+// CommentInfo 查看评论-传出的结构体-service
+type CommentInfo struct {
+	Id         int64  `json:"id,omitempty"`
+	UserInfo   User   `json:"user,omitempty"`
+	Content    string `json:"content,omitempty"`
+	CreateDate string `json:"create_date,omitempty"`
+}
+
+// Comment 评论信息-数据库中的结构体-dao层使用
+type Comment struct {
+	Id          int64     //评论id
+	UserId      int64     //评论用户id
+	VideoId     int64     //视频id
+	CommentText string    //评论内容
+	CreateDate  time.Time //评论发布的日期mm-dd
+	Cancel      int32     //取消评论为1，发布评论为0
+}

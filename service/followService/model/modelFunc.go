@@ -1,18 +1,22 @@
 package model
 
-import "log"
+import (
+	"fmt"
+	"log"
+)
 
 // GetFollowingCnt 给定当前用户id，查询follow表中该用户关注了多少人。
 func GetFollowingCnt(userId int64) (int64, error) {
 	// 用于存储当前用户关注了多少人。
 	var cnt int64
+	if Db == nil {
+		InitDb()
+	}
 	// 查询出错，日志打印err msg，并return err
-	if err := Db.Model(Follow{}).
-		Where("follower_id = ?", userId).
-		Where("cancel = ?", 0).
-		Count(&cnt).Error; nil != err {
-		log.Println(err.Error())
-		return 0, err
+	err := Db.Model(Follow{}).Where("follower_id = ?", userId).Where("cancel = ?", 0).Count(&cnt)
+	if err != nil {
+		fmt.Println(err)
+		return 0, err.Error
 	}
 	// 查询成功，返回人数。
 	return cnt, nil
@@ -22,6 +26,9 @@ func GetFollowingCnt(userId int64) (int64, error) {
 func GetFollowerCnt(userId int64) (int64, error) {
 	// 用于存储当前用户粉丝数的变量
 	var cnt int64
+	if Db == nil {
+		InitDb()
+	}
 	// 当查询出现错误的情况，日志打印err msg，并返回err.
 	if err := Db.
 		Model(Follow{}).
