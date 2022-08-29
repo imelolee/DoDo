@@ -54,7 +54,7 @@ func creatVideo(video *model.FeedVideo, data *model.Video, userId int64) {
 			CurId: userId,
 		})
 
-		var tmpUser userModel.User
+		var tmpUser userModel.FeedUser
 		gconv.Struct(userRsp.User, &tmpUser)
 
 		video.Author = tmpUser
@@ -102,7 +102,7 @@ func uploadQiniu(file []byte, fileName string, fileSize int64) error {
 	upToken := putPolicy.UploadToken(mac)
 
 	cfg := storage.Config{
-		Zone:          &storage.ZoneHuadong,
+		Zone:          &storage.ZoneHuabei,
 		UseCdnDomains: false,
 		UseHTTPS:      false,
 	}
