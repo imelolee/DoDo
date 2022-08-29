@@ -38,8 +38,8 @@ func (e *VideoService) Feed(ctx context.Context, req *pb.FeedReq, rsp *pb.FeedRs
 	var tmpVideo []*pb.Video
 	gconv.Struct(videos, &tmpVideo)
 
-	//rsp.NextTime = tableVideos[len(tableVideos)].PublishTime.Unix()
-	rsp.NextTime = 1661581905178543
+	rsp.NextTime = tableVideos[len(tableVideos)].PublishTime.Unix()
+	//rsp.NextTime = 1661581905178543
 	rsp.VideoList = tmpVideo
 
 	return nil
@@ -72,7 +72,7 @@ func (e *VideoService) Publish(ctx context.Context, req *pb.PublishReq, rsp *pb.
 	//生成一个uuid作为视频的名字
 	videoName := uuid.NewV4().String() + req.FileExt
 
-	err := uploadQiniu(file, videoName, req.FileSize, req.FileExt)
+	err := uploadQiniu(file, videoName, req.FileSize)
 	if err != nil {
 		return err
 	}
