@@ -54,7 +54,7 @@ func creatVideo(video *model.FeedVideo, data *model.Video, userId int64) {
 			CurId: userId,
 		})
 
-		var tmpUser userModel.User
+		var tmpUser userModel.FeedUser
 		gconv.Struct(userRsp.User, &tmpUser)
 
 		video.Author = tmpUser
@@ -93,7 +93,7 @@ func creatVideo(video *model.FeedVideo, data *model.Video, userId int64) {
 }
 
 // 七牛云上传
-func uploadQiniu(file []byte, fileName string, fileSize int64, fileExt string) error {
+func uploadQiniu(file []byte, fileName string, fileSize int64) error {
 
 	putPolicy := storage.PutPolicy{
 		Scope: config.Bucket,

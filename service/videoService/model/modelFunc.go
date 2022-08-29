@@ -32,7 +32,7 @@ func GetVideoByVideoId(videoId int64) (Video, error) {
 func Save(videoName string, imageName string, authorId int64, title string) error {
 	var video Video
 	video.PublishTime = time.Now()
-	video.PlayUrl = config.Domain + videoName + ".mp4"
+	video.PlayUrl = config.Domain + videoName
 	video.CoverUrl = video.PlayUrl
 	video.AuthorId = authorId
 	video.Title = title
