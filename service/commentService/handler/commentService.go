@@ -28,7 +28,7 @@ func (e *CommentService) CountFromVideoId(ctx context.Context, req *pb.IdReq, rs
 	}
 	//1.缓存中查到了数量，则返回数量值-1（去除0值）
 	if cnt != 0 {
-		rsp.Count = cnt
+		rsp.Count = cnt - 1
 		return nil
 	}
 	//2.缓存中查不到则去数据库查

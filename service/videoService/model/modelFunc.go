@@ -18,9 +18,8 @@ func GetVideosByLastTime(lastTime time.Time) ([]Video, error) {
 // GetVideoByVideoId 依据VideoId来获得视频信息
 func GetVideoByVideoId(videoId int64) (Video, error) {
 	var tableVideo Video
-	tableVideo.Id = videoId
 	//Init()
-	result := Db.First(&tableVideo)
+	result := Db.Where("id = ?", videoId).Order("id desc").Limit(config.VideoCount).Find(&tableVideo)
 	if result.Error != nil {
 		return tableVideo, result.Error
 	}

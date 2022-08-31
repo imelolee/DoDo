@@ -19,14 +19,14 @@ func InitRouter(r *gin.Engine) {
 	apiRouter.POST("/user/register/", controller.Register)
 	apiRouter.POST("/user/login/", controller.Login)
 	// extra apis - I
-	//apiRouter.POST("/favorite/action/", middleware.Auth(), controller.FavoriteAction)
-	//apiRouter.GET("/favorite/list/", middleware.Auth(), controller.GetFavouriteList)
-	//apiRouter.POST("/comment/action/", middleware.Auth(), controller.CommentAction)
-	//apiRouter.GET("/comment/list/", middleware.AuthWithoutLogin(), controller.CommentList)
+	apiRouter.POST("/favorite/action/", middleware.Auth(), controller.FavoriteAction)
+	apiRouter.GET("/favorite/list/", middleware.Auth(), controller.GetFavouriteList)
+	apiRouter.POST("/comment/action/", middleware.Auth(), controller.CommentAction)
+	apiRouter.GET("/comment/list/", middleware.AuthWithoutLogin(), controller.CommentList)
 	// extra apis - II
-	//apiRouter.POST("/relation/action/", middleware.Auth(), controller.RelationAction)
-	//apiRouter.GET("/relation/follow/list/", middleware.Auth(), controller.GetFollowing)
-	//apiRouter.GET("/relation/follower/list", middleware.Auth(), controller.GetFollowers)
+	apiRouter.POST("/relation/action/", middleware.Auth(), controller.RelationAction)
+	apiRouter.GET("/relation/follow/list/", middleware.Auth(), controller.GetFollowing)
+	apiRouter.GET("/relation/follower/list", middleware.Auth(), controller.GetFollowers)
 }
 
 // IP地址在app-Base_URL设置

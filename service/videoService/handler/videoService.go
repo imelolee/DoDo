@@ -38,8 +38,12 @@ func (e *VideoService) Feed(ctx context.Context, req *pb.FeedReq, rsp *pb.FeedRs
 	var tmpVideo []*pb.Video
 	gconv.Struct(videos, &tmpVideo)
 
-	rsp.NextTime = tableVideos[len(tableVideos)].PublishTime.Unix()
-	//rsp.NextTime = 1661581905178543
+	if len(tableVideos) == 0 {
+		rsp.NextTime = time.Now().Unix()
+	} else {
+		rsp.NextTime = tableVideos[0].PublishTime.Unix()
+	}
+
 	rsp.VideoList = tmpVideo
 
 	return nil
@@ -66,7 +70,7 @@ func (e *VideoService) GetVideo(ctx context.Context, req *pb.GetVideoReq, rsp *p
 }
 
 func (e *VideoService) Publish(ctx context.Context, req *pb.PublishReq, rsp *pb.PublishRsp) error {
-	log.Infof("Received VideoService.Publish request: %v", req)
+	log.Infof("Received VideoService.Publish request: %v", req.Title)
 	//将视频流上传到视频服务器，保存视频链接
 	file := req.Data
 	//生成一个uuid作为视频的名字
@@ -116,7 +120,7 @@ func (e *VideoService) GetVideoIdList(ctx context.Context, req *pb.VideoIdReq, r
 	log.Infof("Received VideoService.GetVideoIdList request: %v", req)
 	var id []int64
 	//通过pluck来获得单独的切片
-	result := model.Db.Model(&model.Video{}).Where("author_id", req.UserId).Pluck("id", &id)
+	result := model.Db.Model(&model.Video{}).Where("author_id = ?", req.UserId).Pluck("id", &id)
 	//如果出现问题，返回对应到空，并且返回error
 	if result.Error != nil {
 		rsp.VideoId = nil
