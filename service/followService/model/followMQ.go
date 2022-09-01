@@ -146,6 +146,7 @@ func (f *FollowMQ) consumerFollowDel(msgs <-chan amqp.Delivery) {
 		updateRedisWithDel(userId, targetId)
 	}
 }
+
 func updateRedisWithDel(userId int, targetId int) {
 	// step1 删除粉丝关系。
 	targetIdStr := strconv.Itoa(targetId)

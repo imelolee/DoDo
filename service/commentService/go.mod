@@ -3,6 +3,7 @@ module commentService
 go 1.18
 
 require (
+	followService v0.0.0-00010101000000-000000000000
 	github.com/go-micro/plugins/v4/registry/consul v1.1.0
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/gogf/gf v1.16.9
@@ -11,6 +12,7 @@ require (
 	google.golang.org/protobuf v1.28.1
 	gorm.io/driver/mysql v1.3.6
 	gorm.io/gorm v1.23.8
+	likeService v0.0.0-00010101000000-000000000000
 	userService v0.0.0-00010101000000-000000000000
 )
 
@@ -62,7 +64,9 @@ require (
 	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/qiniu/go-sdk/v7 v7.13.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
+	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/sergi/go-diff v1.2.0 // indirect
 	github.com/urfave/cli/v2 v2.11.2 // indirect
 	github.com/xanzy/ssh-agent v0.3.2 // indirect
@@ -74,9 +78,9 @@ require (
 	golang.org/x/sys v0.0.0-20220823224334-20c2bfdbfe24 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/tools v0.1.12 // indirect
-	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
+	videoService v0.0.0-00010101000000-000000000000 // indirect
 )
 
 // Uncomment if you use etcd

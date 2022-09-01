@@ -1,6 +1,8 @@
 package model
 
 import (
+	"fmt"
+	"github.com/gogf/gf/util/gconv"
 	"log"
 	pb "userService/proto"
 )
@@ -28,8 +30,12 @@ func GetTableUserByUsername(name string) (*pb.User, error) {
 // GetTableUserById 根据user_id获得TableUser对象
 func GetTableUserById(id int64) (*pb.User, error) {
 	tableUser := pb.User{}
-	if err := Db.Where("id = ?", id).First(&tableUser).Error; err != nil {
-		log.Println(err.Error())
+	if Db == nil {
+		InitDb()
+	}
+	err := Db.Where("id = ?", id).First(&tableUser).Error
+	if err != nil {
+		fmt.Println(err.Error())
 		return &tableUser, err
 	}
 	return &tableUser, nil
@@ -42,4 +48,110 @@ func InsertTableUser(tableUser *pb.User) bool {
 		return false
 	}
 	return true
+}
+
+// GetFeedUserById 未登录情况下,根据user_id获得User对象
+func GetFeedUserById(id int64) (*pb.FeedUser, error) {
+	user := pb.FeedUser{
+		Id:             0,
+		Name:           "",
+		FollowCount:    0,
+		FollowerCount:  0,
+		IsFollow:       false,
+		TotalFavorited: 0,
+		FavoriteCount:  0,
+	}
+	tableUser, err := GetTableUserById(id)
+	if err != nil {
+		return &user, err
+	}
+
+	followingCnt, err := GetFollowingCnt(id)
+	if err != nil {
+		return nil, err
+	}
+	followerCnt, err := GetFollowerCnt(id)
+	if err != nil {
+		return nil, err
+	}
+
+	totalCnt, err := TotalFavourite(id)
+	if err != nil {
+		return nil, err
+	}
+	favCnt, err := FavouriteVideoCount(id)
+	if err != nil {
+		return nil, err
+	}
+
+	feedUser := FeedUser{
+		Id:             id,
+		Name:           tableUser.Name,
+		FollowCount:    followingCnt,
+		FollowerCount:  followerCnt,
+		IsFollow:       false,
+		TotalFavorited: totalCnt,
+		FavoriteCount:  favCnt,
+	}
+
+	var tmpUser *pb.FeedUser
+	tmpUser = new(pb.FeedUser)
+	err = gconv.Struct(feedUser, &tmpUser)
+
+	return tmpUser, nil
+}
+
+// GetFeedUserByIdWithCurId 已登录(curID)情况下,根据user_id获得User对象
+func GetFeedUserByIdWithCurId(curId int64, id int64) (*pb.FeedUser, error) {
+	InitRedis()
+	InitDb()
+	user := pb.FeedUser{
+		Id:             0,
+		Name:           "",
+		FollowCount:    0,
+		FollowerCount:  0,
+		IsFollow:       false,
+		TotalFavorited: 0,
+		FavoriteCount:  0,
+	}
+	tableUser, err := GetTableUserById(id)
+	if err != nil {
+		return &user, err
+	}
+	followCount, err := GetFollowingCnt(id)
+	if err != nil {
+		return &user, err
+	}
+	followerCount, err := GetFollowerCnt(id)
+	if err != nil {
+		return &user, err
+	}
+
+	isFollowing, err := IsFollowing(curId, id)
+	if err != nil {
+		return &user, err
+	}
+
+	total, err := TotalFavourite(id)
+	if err != nil {
+		return &user, err
+	}
+
+	count, err := FavouriteVideoCount(id)
+	if err != nil {
+		return &user, err
+	}
+	tmpUser := FeedUser{
+		Id:             id,
+		Name:           tableUser.Name,
+		FollowCount:    followCount,
+		FollowerCount:  followerCount,
+		IsFollow:       isFollowing,
+		TotalFavorited: total,
+		FavoriteCount:  count,
+	}
+
+	var feedUser *pb.FeedUser
+	err = gconv.Struct(tmpUser, &feedUser)
+	return feedUser, nil
 }
