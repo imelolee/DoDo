@@ -1,16 +1,19 @@
 package model
 
 import (
-	"fmt"
-	"followService/config"
-	pb "followService/proto"
-	"github.com/gogf/gf/util/gconv"
 	"log"
 	"strconv"
-	"strings"
-	"sync"
-	userModel "userService/model"
+	"time"
+	"userService/config"
 )
+
+// Follow 用户关系结构，对应用户关系表。
+type Follow struct {
+	Id         int64
+	UserId     int64
+	FollowerId int64
+	Cancel     int8
+}
 
 // FindRelation 给定当前用户和目标用户id，查询follow表中相应的记录。
 func FindRelation(userId int64, targetId int64) (*Follow, error) {
@@ -91,6 +94,16 @@ func IsFollowing(userId int64, targetId int64) (bool, error) {
 	return true, nil
 }
 
+// Redis中添加用户关注关系
+func addRelationToRedis(userId int, targetId int) {
+	// 第一次存入时，给该key添加一个-1为key，防止脏数据的写入。当然set可以去重，直接加，便于CPU。
+	RdbFollowingPart.SAdd(Ctx, strconv.Itoa(int(userId)), -1)
+	// 将查询到的关注关系注入Redis.
+	RdbFollowingPart.SAdd(Ctx, strconv.Itoa(int(userId)), targetId)
+	// 更新过期时间。
+	RdbFollowingPart.Expire(Ctx, strconv.Itoa(int(userId)), config.ExpireTime)
+}
+
 func GetFollowerCnt(userId int64) (int64, error) {
 	// 查Redis中是否已经存在。
 	if cnt, _ := RdbFollowers.SCard(Ctx, strconv.Itoa(int(userId))).Result(); cnt > 0 {
@@ -108,6 +121,21 @@ func GetFollowerCnt(userId int64) (int64, error) {
 	go addFollowersToRedis(int(userId), ids)
 
 	return int64(len(ids)), nil
+}
+
+// 在redis中加入关注者信息
+func addFollowersToRedis(userId int, ids []int64) {
+	RdbFollowers.SAdd(Ctx, strconv.Itoa(userId), -1)
+	for i, id := range ids {
+		RdbFollowers.SAdd(Ctx, strconv.Itoa(userId), id)
+		RdbFollowingPart.SAdd(Ctx, strconv.Itoa(int(id)), userId)
+		RdbFollowingPart.SAdd(Ctx, strconv.Itoa(int(id)), -1)
+		// 更新部分关注者的时间
+		RdbFollowingPart.Expire(Ctx, strconv.Itoa(int(id)),
+			config.ExpireTime+time.Duration((i%10)<<8))
+	}
+	// 更新followers的过期时间。
+	RdbFollowers.Expire(Ctx, strconv.Itoa(userId), config.ExpireTime)
 }
 
 func GetFollowingCnt(userId int64) (int64, error) {
@@ -130,113 +158,17 @@ func GetFollowingCnt(userId int64) (int64, error) {
 	return int64(len(ids)), nil
 }
 
-func AddFollowRelation(userId int64, targetId int64) (bool, error) {
-	// 加信息打入消息队列。
-	sb := strings.Builder{}
-	sb.WriteString(strconv.Itoa(int(userId)))
-	sb.WriteString(" ")
-	sb.WriteString(strconv.Itoa(int(targetId)))
-	RmqFollowAdd.Publish(sb.String())
-	// 记录日志
-	// 更新redis信息。
-	updateRedisWithAdd(userId, targetId)
-
-	return true, nil
-}
-
-func DeleteFollowRelation(userId int64, targetId int64) (bool, error) {
-	// 加信息打入消息队列。
-	sb := strings.Builder{}
-	sb.WriteString(strconv.Itoa(int(userId)))
-	sb.WriteString(" ")
-	sb.WriteString(strconv.Itoa(int(targetId)))
-	RmqFollowDel.Publish(sb.String())
-	// 记录日志
-	// 更新redis信息。
-	updateRedisWithDelete(userId, targetId)
-
-	return true, nil
-}
-
-func GetFollowing(userId int64) ([]*pb.FeedUser, error) {
-	// 获取关注对象的id数组。
-	ids, err := GetFollowingIds(userId)
-	// 查询出错
-	if nil != err {
-		return nil, err
+// 在redis中加入关注信息
+func addFollowingToRedis(userId int, ids []int64) {
+	RdbFollowing.SAdd(Ctx, strconv.Itoa(userId), -1)
+	for i, id := range ids {
+		RdbFollowing.SAdd(Ctx, strconv.Itoa(userId), id)
+		RdbFollowingPart.SAdd(Ctx, strconv.Itoa(userId), id)
+		RdbFollowingPart.SAdd(Ctx, strconv.Itoa(userId), -1)
+		// 更新过期时间
+		RdbFollowingPart.Expire(Ctx, strconv.Itoa(userId),
+			config.ExpireTime+time.Duration((i%10)<<8))
 	}
-	// 没得关注者
-	if nil == ids {
-		return nil, nil
-	}
-	// 根据每个id来查询用户信息。
-	followingNum := len(ids)
-
-	users := make([]pb.FeedUser, followingNum)
-	for i := 0; i < followingNum; i++ {
-
-		user, err := userModel.GetFeedUserByIdWithCurId(ids[i], userId)
-		if err != nil {
-			fmt.Println("userModel.GetFeedUserByIdWithCurId err:", err)
-		}
-
-		var tmpUser *pb.FeedUser
-		gconv.Struct(user, &tmpUser)
-
-		users[i] = *tmpUser
-
-	}
-	// 返回关注对象列表
-	var followUser []*pb.FeedUser
-	gconv.Struct(users, &followUser)
-
-	return followUser, nil
-}
-
-func GetFollowers(userId int64) ([]*pb.FeedUser, error) {
-	// 获取粉丝的id数组。
-	ids, err := GetFollowersIds(userId)
-	// 查询出错
-	if nil != err {
-		return nil, err
-	}
-	// 没得粉丝
-	if nil == ids {
-		return nil, nil
-	}
-	// 根据每个id来查询用户信息。
-	len := len(ids)
-	if len > 0 {
-		len -= 1
-	}
-	users := make([]userModel.FeedUser, len)
-	var wg sync.WaitGroup
-	wg.Add(len)
-	i, j := 0, 0
-	for ; i < len; j++ {
-		// 越过-1
-		if ids[j] == -1 {
-			continue
-		}
-		//开启协程来查。
-		go func(i int, idx int64) {
-			defer wg.Done()
-
-			// 调用微服务的方法
-			user, _ := userModel.GetFeedUserByIdWithCurId(idx, userId)
-			var tmpUser userModel.FeedUser
-			gconv.Struct(user, &tmpUser)
-
-			users[i] = tmpUser
-
-		}(i, ids[i])
-		i++
-	}
-	wg.Wait()
-	// 返回粉丝列表。
-
-	var followerUser []*pb.FeedUser
-	gconv.Struct(users, &followerUser)
-
-	return followerUser, nil
+	// 更新following的过期时间
+	RdbFollowing.Expire(Ctx, strconv.Itoa(userId), config.ExpireTime)
 }

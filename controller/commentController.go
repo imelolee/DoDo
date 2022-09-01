@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/genleel/DoDo/model"
 	"github.com/genleel/DoDo/proto/commentService"
 	"github.com/genleel/DoDo/utils"
@@ -34,9 +35,9 @@ type CommentActionResponse struct {
 func CommentAction(c *gin.Context) {
 	fmt.Println("CommentController-Comment_Action: running") //函数已运行
 	//获取userId
-	id, _ := c.Get("userId")
-	userid, _ := id.(string)
-	userId, err := strconv.ParseInt(userid, 10, 64)
+	user, _ := c.Get("userId")
+	curId := user.(*jwt.StandardClaims).Id
+	userId, err := strconv.ParseInt(curId, 10, 64)
 	fmt.Printf("err:%v", err)
 	fmt.Printf("userId:%v", userId)
 	//错误处理
@@ -83,8 +84,14 @@ func CommentAction(c *gin.Context) {
 		sendComment.CommentText = content
 		timeNow := time.Now()
 		sendComment.CreateDate = timeNow
+
+		var cmt *commentService.Comment
+		gconv.Struct(sendComment, &cmt)
+
 		//发表评论
-		commentRsp, err := commentClient.Send(context.TODO(), &commentService.CommentReq{})
+		commentRsp, err := commentClient.Send(context.TODO(), &commentService.CommentReq{
+			Comment: cmt,
+		})
 		//发表评论失败
 		if err != nil {
 			c.JSON(http.StatusOK, CommentActionResponse{
