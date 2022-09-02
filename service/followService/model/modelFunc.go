@@ -2,44 +2,103 @@ package model
 
 import (
 	"fmt"
-	"log"
+	"followService/config"
+	pb "followService/proto"
+	"github.com/gogf/gf/util/gconv"
+	log "go-micro.dev/v4/logger"
+	"strconv"
+	"strings"
+	"time"
+	userModel "userService/model"
 )
 
-// GetFollowingCnt 给定当前用户id，查询follow表中该用户关注了多少人。
-func GetFollowingCnt(userId int64) (int64, error) {
-	// 用于存储当前用户关注了多少人。
-	var cnt int64
-	if Db == nil {
-		InitDb()
-	}
-	// 查询出错，日志打印err msg，并return err
-	err := Db.Model(Follow{}).Where("follower_id = ?", userId).Where("cancel = ?", 0).Count(&cnt)
-	if err != nil {
-		fmt.Println(err)
-		return 0, err.Error
-	}
-	// 查询成功，返回人数。
-	return cnt, nil
+// Redis中添加用户关注关系
+func addRelationToRedis(userId int, targetId int) {
+	// 第一次存入时，给该key添加一个-1为key，防止脏数据的写入。当然set可以去重，直接加，便于CPU。
+	RdbFollowingPart.SAdd(Ctx, strconv.Itoa(int(userId)), -1)
+	// 将查询到的关注关系注入Redis.
+	RdbFollowingPart.SAdd(Ctx, strconv.Itoa(int(userId)), targetId)
+	// 更新过期时间。
+	RdbFollowingPart.Expire(Ctx, strconv.Itoa(int(userId)), config.ExpireTime)
 }
 
-// GetFollowerCnt 给定当前用户id，查询follow表中该用户的粉丝数。
-func GetFollowerCnt(userId int64) (int64, error) {
-	// 用于存储当前用户粉丝数的变量
-	var cnt int64
-	if Db == nil {
-		InitDb()
+// 在redis中加入关注者信息
+func addFollowersToRedis(userId int, ids []int64) {
+	RdbFollowers.SAdd(Ctx, strconv.Itoa(userId), -1)
+	for i, id := range ids {
+		RdbFollowers.SAdd(Ctx, strconv.Itoa(userId), id)
+		RdbFollowingPart.SAdd(Ctx, strconv.Itoa(int(id)), userId)
+		RdbFollowingPart.SAdd(Ctx, strconv.Itoa(int(id)), -1)
+		// 更新部分关注者的时间
+		RdbFollowingPart.Expire(Ctx, strconv.Itoa(int(id)),
+			config.ExpireTime+time.Duration((i%10)<<8))
 	}
-	// 当查询出现错误的情况，日志打印err msg，并返回err.
-	if err := Db.
-		Model(Follow{}).
-		Where("user_id = ?", userId).
-		Where("cancel = ?", 0).
-		Count(&cnt).Error; nil != err {
-		log.Println(err.Error())
-		return 0, err
+	// 更新followers的过期时间。
+	RdbFollowers.Expire(Ctx, strconv.Itoa(userId), config.ExpireTime)
+}
+
+// 在redis中加入关注信息
+func addFollowingToRedis(userId int, ids []int64) {
+	RdbFollowing.SAdd(Ctx, strconv.Itoa(userId), -1)
+	for i, id := range ids {
+		RdbFollowing.SAdd(Ctx, strconv.Itoa(userId), id)
+		RdbFollowingPart.SAdd(Ctx, strconv.Itoa(userId), id)
+		RdbFollowingPart.SAdd(Ctx, strconv.Itoa(userId), -1)
+		// 更新过期时间
+		RdbFollowingPart.Expire(Ctx, strconv.Itoa(userId),
+			config.ExpireTime+time.Duration((i%10)<<8))
 	}
-	// 正常情况，返回取到的粉丝数。
-	return cnt, nil
+	// 更新following的过期时间
+	RdbFollowing.Expire(Ctx, strconv.Itoa(userId), config.ExpireTime)
+}
+
+// 添加关注时设置Redis
+func updateRedisWithAdd(userId int64, targetId int64) {
+	targetIdStr := strconv.Itoa(int(targetId))
+	if cnt, _ := RdbFollowers.SCard(Ctx, targetIdStr).Result(); 0 != cnt {
+		RdbFollowers.SAdd(Ctx, targetIdStr, userId)
+		RdbFollowers.Expire(Ctx, targetIdStr, config.ExpireTime)
+	}
+
+	followingUserIdStr := strconv.Itoa(int(userId))
+	if cnt, _ := RdbFollowing.SCard(Ctx, followingUserIdStr).Result(); 0 != cnt {
+		RdbFollowing.SAdd(Ctx, followingUserIdStr, targetId)
+		RdbFollowing.Expire(Ctx, followingUserIdStr, config.ExpireTime)
+	}
+
+	followingPartUserIdStr := followingUserIdStr
+	RdbFollowingPart.SAdd(Ctx, followingPartUserIdStr, targetId)
+	// 可能是第一次给改用户加followingPart的关注者，需要加上-1防止脏读。
+	RdbFollowingPart.SAdd(Ctx, followingPartUserIdStr, -1)
+	RdbFollowingPart.Expire(Ctx, followingPartUserIdStr, config.ExpireTime)
+
+}
+
+// 当取关时，更新redis里的信息
+func updateRedisWithDelete(userId int64, targetId int64) {
+	/*
+		1-Redis是否存在followers_targetId.
+		2-Redis是否存在following_userId.
+		2-Redis是否存在following_part_userId.
+	*/
+	// step1
+	targetIdStr := strconv.Itoa(int(targetId))
+	if cnt, _ := RdbFollowers.SCard(Ctx, targetIdStr).Result(); 0 != cnt {
+		RdbFollowers.SRem(Ctx, targetIdStr, userId)
+		RdbFollowers.Expire(Ctx, targetIdStr, config.ExpireTime)
+	}
+	// step2
+	followingIdStr := strconv.Itoa(int(userId))
+	if cnt, _ := RdbFollowing.SCard(Ctx, followingIdStr).Result(); 0 != cnt {
+		RdbFollowing.SRem(Ctx, followingIdStr, targetId)
+		RdbFollowing.Expire(Ctx, followingIdStr, config.ExpireTime)
+	}
+	// step3
+	followingPartUserIdStr := followingIdStr
+	if cnt, _ := RdbFollowingPart.Exists(Ctx, followingPartUserIdStr).Result(); 0 != cnt {
+		RdbFollowingPart.SRem(Ctx, followingPartUserIdStr, targetId)
+		RdbFollowingPart.Expire(Ctx, followingPartUserIdStr, config.ExpireTime)
+	}
 }
 
 // FindRelation 给定当前用户和目标用户id，查询follow表中相应的记录。
@@ -56,7 +115,7 @@ func FindRelation(userId int64, targetId int64) (*Follow, error) {
 		if "record not found" == err.Error() {
 			return nil, nil
 		}
-		log.Println(err.Error())
+		log.Infof(err.Error())
 		return nil, err
 	}
 	//正常情况，返回取到的值和空err.
@@ -75,7 +134,7 @@ func GetFollowersIds(userId int64) ([]int64, error) {
 			return nil, nil
 		}
 		// 查询出错。
-		log.Println(err.Error())
+		log.Infof(err.Error())
 		return nil, err
 	}
 	// 查询成功。
@@ -93,9 +152,171 @@ func GetFollowingIds(userId int64) ([]int64, error) {
 			return nil, nil
 		}
 		// 查询出错。
-		log.Println(err.Error())
+		log.Infof(err.Error())
 		return nil, err
 	}
 	// 查询成功。
 	return ids, nil
+}
+
+func IsFollowing(userId int64, targetId int64) (bool, error) {
+	// 先查Redis里面是否有此关系。
+	if flag, _ := RdbFollowingPart.SIsMember(Ctx, strconv.Itoa(int(userId)), targetId).Result(); flag {
+		// 重现设置过期时间。
+		RdbFollowingPart.Expire(Ctx, strconv.Itoa(int(userId)), config.ExpireTime)
+		return true, nil
+	}
+	// SQL 查询。
+	relation, err := FindRelation(userId, targetId)
+
+	if nil != err {
+		return false, err
+	}
+	if nil == relation {
+		return false, nil
+	}
+	// 存在此关系，将其注入Redis中。
+	go addRelationToRedis(int(userId), int(targetId))
+	return true, nil
+}
+
+func GetFollowerCnt(userId int64) (int64, error) {
+	// 查Redis中是否已经存在。
+	if cnt, _ := RdbFollowers.SCard(Ctx, strconv.Itoa(int(userId))).Result(); cnt > 0 {
+		// 更新过期时间。
+		RdbFollowers.Expire(Ctx, strconv.Itoa(int(userId)), config.ExpireTime)
+		return cnt - 1, nil
+	}
+	// SQL中查询。
+	ids, err := GetFollowersIds(userId)
+	if nil != err {
+		return 0, err
+	}
+	// 将数据存入Redis.
+	// 更新followers 和 followingPart
+	go addFollowersToRedis(int(userId), ids)
+
+	return int64(len(ids)), nil
+}
+
+func GetFollowingCnt(userId int64) (int64, error) {
+	// 查看Redis中是否有关注数。
+	if cnt, _ := RdbFollowing.SCard(Ctx, strconv.Itoa(int(userId))).Result(); cnt > 0 {
+		// 更新过期时间。
+		RdbFollowing.Expire(Ctx, strconv.Itoa(int(userId)), config.ExpireTime)
+		return cnt - 1, nil
+
+	}
+	// 用SQL查询。
+	ids, err := GetFollowingIds(userId)
+
+	if nil != err {
+		return 0, err
+	}
+	// 更新Redis中的followers和followPart
+	go addFollowingToRedis(int(userId), ids)
+
+	return int64(len(ids)), nil
+}
+
+func AddFollowRelation(userId int64, targetId int64) (bool, error) {
+	// 加信息打入消息队列。
+	sb := strings.Builder{}
+	sb.WriteString(strconv.Itoa(int(userId)))
+	sb.WriteString(" ")
+	sb.WriteString(strconv.Itoa(int(targetId)))
+	if RmqFollowAdd == nil {
+		InitRabbitMQ()
+		InitFollowRabbitMQ()
+	}
+	RmqFollowAdd.Publish(sb.String())
+	// 记录日志
+	// 更新redis信息。
+	updateRedisWithAdd(userId, targetId)
+
+	return true, nil
+}
+
+func DeleteFollowRelation(userId int64, targetId int64) (bool, error) {
+	// 加信息打入消息队列。
+	sb := strings.Builder{}
+	sb.WriteString(strconv.Itoa(int(userId)))
+	sb.WriteString(" ")
+	sb.WriteString(strconv.Itoa(int(targetId)))
+	RmqFollowDel.Publish(sb.String())
+	// 记录日志
+	// 更新redis信息。
+	updateRedisWithDelete(userId, targetId)
+
+	return true, nil
+}
+
+func GetFollowing(userId int64) ([]*pb.FeedUser, error) {
+	// 获取关注对象的id数组。
+	ids, err := GetFollowingIds(userId)
+	// 查询出错
+	if nil != err {
+		return nil, err
+	}
+	// 没得关注者
+	if nil == ids {
+		return nil, nil
+	}
+	// 根据每个id来查询用户信息。
+	followingNum := len(ids)
+
+	users := make([]pb.FeedUser, followingNum)
+	for i := 0; i < followingNum; i++ {
+
+		user, err := userModel.GetFeedUserByIdWithCurId(ids[i], userId)
+		if err != nil {
+			fmt.Println("userModel.GetFeedUserByIdWithCurId err:", err)
+		}
+
+		var tmpUser *pb.FeedUser
+		gconv.Struct(user, &tmpUser)
+
+		users[i] = *tmpUser
+
+	}
+	// 返回关注对象列表
+	var followUser []*pb.FeedUser
+	gconv.Struct(users, &followUser)
+
+	return followUser, nil
+}
+
+func GetFollowers(userId int64) ([]*pb.FeedUser, error) {
+	// 获取粉丝的id数组。
+	ids, err := GetFollowersIds(userId)
+	// 查询出错
+	if nil != err {
+		return nil, err
+	}
+	// 没得粉丝
+	if nil == ids {
+		return nil, nil
+	}
+	// 根据每个id来查询用户信息。
+	followerNum := len(ids)
+
+	users := make([]pb.FeedUser, followerNum)
+	for i := 0; i < followerNum; i++ {
+
+		user, err := userModel.GetFeedUserByIdWithCurId(ids[i], userId)
+		if err != nil {
+			fmt.Println("userModel.GetFeedUserByIdWithCurId err:", err)
+		}
+		var tmpUser *pb.FeedUser
+		gconv.Struct(user, &tmpUser)
+
+		users[i] = *tmpUser
+
+	}
+	// 返回粉丝列表。
+
+	var followerUser []*pb.FeedUser
+	gconv.Struct(users, &followerUser)
+
+	return followerUser, nil
 }

@@ -3,7 +3,7 @@ package model
 import (
 	"fmt"
 	"github.com/streadway/amqp"
-	"log"
+	log "go-micro.dev/v4/logger"
 	"strconv"
 	"strings"
 )
@@ -103,7 +103,7 @@ func (f *FollowMQ) Consumer() {
 
 	}
 
-	log.Printf("[*] Waiting for messagees,To exit press CTRL+C")
+	log.Infof("[*] Waiting for messagees,To exit press CTRL+C")
 
 	<-forever
 
@@ -118,11 +118,11 @@ func (f *FollowMQ) consumerFollowAdd(msgs <-chan amqp.Delivery) {
 		targetId, _ := strconv.Atoi(params[1])
 		// 日志记录。
 		sql := fmt.Sprintf("CALL addFollowRelation(%v,%v)", targetId, userId)
-		log.Printf("消费队列执行添加关系。SQL如下：%s", sql)
+		log.Infof("消费队列执行添加关系。SQL如下：%s", sql)
 		// 执行SQL，注必须scan，该SQL才能被执行。
 		if err := Db.Raw(sql).Scan(nil).Error; nil != err {
 			// 执行出错，打印日志。
-			log.Println(err.Error())
+			log.Infof(err.Error())
 		}
 	}
 }
@@ -140,12 +140,13 @@ func (f *FollowMQ) consumerFollowDel(msgs <-chan amqp.Delivery) {
 		// 执行SQL，注必须scan，该SQL才能被执行。
 		if err := Db.Raw(sql).Scan(nil).Error; nil != err {
 			// 执行出错，打印日志。
-			log.Println(err.Error())
+			log.Infof(err.Error())
 		}
 		// 再删Redis里的信息，防止脏数据，保证最终一致性。
 		updateRedisWithDel(userId, targetId)
 	}
 }
+
 func updateRedisWithDel(userId int, targetId int) {
 	// step1 删除粉丝关系。
 	targetIdStr := strconv.Itoa(targetId)

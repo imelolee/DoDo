@@ -3,7 +3,7 @@ package model
 import (
 	"fmt"
 	"github.com/streadway/amqp"
-	"log"
+	log "go-micro.dev/v4/logger"
 	"strconv"
 )
 
@@ -106,11 +106,11 @@ func (c *CommentMQ) consumerCommentDel(msg <-chan amqp.Delivery) {
 		// 参数解析，只有一个评论id
 		cId := fmt.Sprintf("%s", d.Body)
 		commentId, _ := strconv.Atoi(cId)
-		//log.Println("commentId:", commentId)
+		//log.Infof("commentId:", commentId)
 		//删除数据库中评论信息
 		err := DeleteComment(int64(commentId))
 		if err != nil {
-			log.Println(err)
+			log.Infof(err.Error())
 		}
 	}
 }

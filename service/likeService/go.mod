@@ -15,6 +15,7 @@ require (
 )
 
 require (
+	commentService v0.0.0-00010101000000-000000000000 // indirect
 	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20220824120805-4b6e5c587895 // indirect
 	github.com/acomagu/bufpipe v1.0.3 // indirect
@@ -62,7 +63,9 @@ require (
 	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/qiniu/go-sdk/v7 v7.13.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
+	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/sergi/go-diff v1.2.0 // indirect
 	github.com/urfave/cli/v2 v2.11.2 // indirect
 	github.com/xanzy/ssh-agent v0.3.2 // indirect
@@ -76,6 +79,7 @@ require (
 	golang.org/x/tools v0.1.12 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
+	userService v0.0.0-00010101000000-000000000000 // indirect
 )
 
 // Uncomment if you use etcd

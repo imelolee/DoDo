@@ -21,7 +21,7 @@ type Response struct {
 	StatusMsg  string `json:"status_msg,omitempty"`
 }
 
-type UserLoginResponse struct {
+type UserfmtinResponse struct {
 	Response
 	UserId int64  `json:"user_id,omitempty"`
 	Token  string `json:"token"`
@@ -50,7 +50,7 @@ func Register(c *gin.Context) {
 	}
 
 	if username == userRsp.User.Name {
-		c.JSON(http.StatusOK, UserLoginResponse{
+		c.JSON(http.StatusOK, UserfmtinResponse{
 			Response: Response{StatusCode: 1, StatusMsg: "User already exist"},
 		})
 	} else {
@@ -77,7 +77,7 @@ func Register(c *gin.Context) {
 
 		token := GenerateToken(userRsp.User)
 		fmt.Println("注册的用户id: ", userRsp.User.Id)
-		c.JSON(http.StatusOK, UserLoginResponse{
+		c.JSON(http.StatusOK, UserfmtinResponse{
 			Response: Response{StatusCode: 0},
 			UserId:   userRsp.User.Id,
 			Token:    token,
@@ -116,7 +116,7 @@ func GenerateToken(user *userService.User) string {
 	return token
 }
 
-// Login POST douyin/user/login/ 用户登录
+// fmtin POST douyin/user/fmtin/ 用户登录
 func Login(c *gin.Context) {
 	username := c.Query("username")
 	password := c.Query("password")
@@ -133,13 +133,13 @@ func Login(c *gin.Context) {
 
 	if encodePwd == userRsp.User.Password {
 		token := GenerateToken(userRsp.User)
-		c.JSON(http.StatusOK, UserLoginResponse{
+		c.JSON(http.StatusOK, UserfmtinResponse{
 			Response: Response{StatusCode: 0},
 			UserId:   userRsp.User.Id,
 			Token:    token,
 		})
 	} else {
-		c.JSON(http.StatusOK, UserLoginResponse{
+		c.JSON(http.StatusOK, UserfmtinResponse{
 			Response: Response{StatusCode: 1, StatusMsg: "Username or Password Error"},
 		})
 	}
