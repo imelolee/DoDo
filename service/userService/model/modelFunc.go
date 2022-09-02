@@ -3,7 +3,7 @@ package model
 import (
 	"fmt"
 	"github.com/gogf/gf/util/gconv"
-	"log"
+	log "go-micro.dev/v4/logger"
 	pb "userService/proto"
 )
 
@@ -11,7 +11,7 @@ import (
 func GetTableUserList() ([]*pb.User, error) {
 	var tableUsers []*pb.User
 	if err := Db.Find(&tableUsers).Error; err != nil {
-		log.Println(err.Error())
+		log.Infof(err.Error())
 		return tableUsers, err
 	}
 	return tableUsers, nil
@@ -21,7 +21,7 @@ func GetTableUserList() ([]*pb.User, error) {
 func GetTableUserByUsername(name string) (*pb.User, error) {
 	tableUser := pb.User{}
 	if err := Db.Where("name = ?", name).First(&tableUser).Error; err != nil {
-		log.Println(err.Error())
+		log.Infof(err.Error())
 		return &tableUser, err
 	}
 	return &tableUser, nil
@@ -44,7 +44,7 @@ func GetTableUserById(id int64) (*pb.User, error) {
 // InsertTableUser 将tableUser插入表内
 func InsertTableUser(tableUser *pb.User) bool {
 	if err := Db.Create(&tableUser).Error; err != nil {
-		log.Println(err.Error())
+		log.Infof(err.Error())
 		return false
 	}
 	return true
@@ -102,9 +102,14 @@ func GetFeedUserById(id int64) (*pb.FeedUser, error) {
 }
 
 // GetFeedUserByIdWithCurId 已登录(curID)情况下,根据user_id获得User对象
-func GetFeedUserByIdWithCurId(curId int64, id int64) (*pb.FeedUser, error) {
-	InitRedis()
-	InitDb()
+func GetFeedUserByIdWithCurId(id int64, curId int64) (*pb.FeedUser, error) {
+	if Db == nil {
+		InitDb()
+	}
+	if RdbFollowing == nil {
+		InitRedis()
+	}
+
 	user := pb.FeedUser{
 		Id:             0,
 		Name:           "",
@@ -154,4 +159,16 @@ func GetFeedUserByIdWithCurId(curId int64, id int64) (*pb.FeedUser, error) {
 	var feedUser *pb.FeedUser
 	err = gconv.Struct(tmpUser, &feedUser)
 	return feedUser, nil
+}
+
+func GetVideoIdList(userId int64) ([]int64, error) {
+	var id []int64
+	//通过pluck来获得单独的切片
+	result := Db.Model(&Video{}).Where("author_id = ?", userId).Pluck("id", &id)
+	//如果出现问题，返回对应到空，并且返回error
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return id, nil
 }

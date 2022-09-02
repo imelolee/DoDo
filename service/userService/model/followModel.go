@@ -1,7 +1,7 @@
 package model
 
 import (
-	"log"
+	log "go-micro.dev/v4/logger"
 	"strconv"
 	"time"
 	"userService/config"
@@ -29,7 +29,7 @@ func FindRelation(userId int64, targetId int64) (*Follow, error) {
 		if "record not found" == err.Error() {
 			return nil, nil
 		}
-		log.Println(err.Error())
+		log.Infof(err.Error())
 		return nil, err
 	}
 	//正常情况，返回取到的值和空err.
@@ -48,7 +48,7 @@ func GetFollowersIds(userId int64) ([]int64, error) {
 			return nil, nil
 		}
 		// 查询出错。
-		log.Println(err.Error())
+		log.Infof(err.Error())
 		return nil, err
 	}
 	// 查询成功。
@@ -66,7 +66,7 @@ func GetFollowingIds(userId int64) ([]int64, error) {
 			return nil, nil
 		}
 		// 查询出错。
-		log.Println(err.Error())
+		log.Infof(err.Error())
 		return nil, err
 	}
 	// 查询成功。

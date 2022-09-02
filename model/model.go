@@ -31,10 +31,10 @@ type Video struct {
 
 type FeedVideo struct {
 	Video
-	Author        User  `json:"author"`
-	FavoriteCount int64 `json:"favorite_count"`
-	CommentCount  int64 `json:"comment_count"`
-	IsFavorite    bool  `json:"is_favorite"`
+	Author        FeedUser `json:"author"`
+	FavoriteCount int64    `json:"favorite_count"`
+	CommentCount  int64    `json:"comment_count"`
+	IsFavorite    bool     `json:"is_favorite"`
 }
 
 // CommentInfo 查看评论-传出的结构体-service

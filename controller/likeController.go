@@ -26,7 +26,6 @@ type GetFavouriteListResponse struct {
 
 // FavoriteAction 点赞或者取消赞操作;
 func FavoriteAction(c *gin.Context) {
-
 	user, _ := c.Get("userId")
 	strUserId := user.(*jwt.StandardClaims).Id
 	userId, _ := strconv.ParseInt(strUserId, 10, 64)
@@ -44,13 +43,12 @@ func FavoriteAction(c *gin.Context) {
 		ActionType: actionType,
 	})
 	if err == nil {
-		fmt.Printf("方法like.FavouriteAction(userid, videoId, int32(actiontype) 成功")
 		c.JSON(http.StatusOK, likeResponse{
 			StatusCode: 0,
 			StatusMsg:  "favourite action success",
 		})
 	} else {
-		fmt.Printf("方法like.FavouriteAction(userid, videoId, int32(actiontype) 失败：%v", err)
+		fmt.Println("likeController.FavoriteAction err:", err)
 		c.JSON(http.StatusOK, likeResponse{
 			StatusCode: 1,
 			StatusMsg:  "favourite action fail",
@@ -61,7 +59,8 @@ func FavoriteAction(c *gin.Context) {
 // GetFavouriteList 获取点赞列表;
 func GetFavouriteList(c *gin.Context) {
 	strUserId := c.Query("user_id")
-	strCurId := c.GetString("userId")
+	curUser, _ := c.Get("userId")
+	strCurId := curUser.(*jwt.StandardClaims).Id
 	userId, _ := strconv.ParseInt(strUserId, 10, 64)
 	curId, _ := strconv.ParseInt(strCurId, 10, 64)
 	likeMicro := utils.InitMicro()
@@ -75,17 +74,17 @@ func GetFavouriteList(c *gin.Context) {
 	gconv.Struct(videoRsp.Video, &tmpList)
 
 	if err == nil {
-		fmt.Printf("方法like.GetFavouriteList(userid) 成功")
 		c.JSON(http.StatusOK, GetFavouriteListResponse{
 			StatusCode: 0,
-			StatusMsg:  "get favouriteList success",
+			StatusMsg:  "Get favouriteList success.",
 			VideoList:  tmpList,
 		})
 	} else {
-		fmt.Printf("方法like.GetFavouriteList(userid) 失败：%v", err)
 		c.JSON(http.StatusOK, GetFavouriteListResponse{
 			StatusCode: 1,
-			StatusMsg:  "get favouriteList fail ",
+			StatusMsg:  "Get favouriteList failed.",
 		})
+		fmt.Println("likeController.GetFavouriteList err:", err)
+
 	}
 }

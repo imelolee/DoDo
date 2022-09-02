@@ -50,6 +50,7 @@ func (e *FollowService) DeleteFollowRelation(ctx context.Context, req *pb.UserTa
 }
 
 func (e *FollowService) GetFollowing(ctx context.Context, req *pb.UserIdReq, rsp *pb.UserListRsp) error {
+	log.Infof("Received FollowService.GetFollowing request: %v", req)
 	followUser, err := model.GetFollowing(req.UserId)
 	rsp.User = followUser
 

@@ -2,8 +2,9 @@ package model
 
 import (
 	"errors"
+	log "go-micro.dev/v4/logger"
 	"likeService/config"
-	"log"
+
 	"strconv"
 	"time"
 )
@@ -24,7 +25,7 @@ func GetLikeUserIdList(videoId int64) ([]int64, error) {
 		Pluck("user_id", &likeUserIdList).Error
 	//查询过程出现错误，返回默认值0，并输出错误信息
 	if err != nil {
-		log.Println(err.Error())
+		log.Infof(err.Error())
 		return nil, errors.New("get likeUserIdList failed")
 	} else {
 		//没查询到或者查询到结果，返回数量以及无报错
@@ -37,6 +38,9 @@ func FavouriteCount(id int64) (int64, error) {
 	//将int64 videoId转换为 string strVideoId
 	strVideoId := strconv.FormatInt(id, 10)
 	//step1 如果key:strVideoId存在 则计算集合中userId个数
+	if RdbLikeVideoId == nil {
+		InitRedis()
+	}
 	if n, err := RdbLikeVideoId.Exists(Ctx, strVideoId).Result(); n > 0 {
 		//如果有问题，说明查询redis失败,返回默认false,返回错误信息
 		if err != nil {
@@ -162,11 +166,11 @@ func GetLikeVideoIdList(userId int64) ([]int64, error) {
 	if err != nil {
 		//查询数据为0，返回空likeVideoIdList切片，以及返回无错误
 		if "record not found" == err.Error() {
-			log.Println("there are no likeVideoId")
+			log.Infof("there are no likeVideoId")
 			return likeVideoIdList, nil
 		} else {
 			//如果查询数据库失败，返回获取likeVideoIdList失败
-			log.Println(err.Error())
+			log.Infof(err.Error())
 			return likeVideoIdList, errors.New("get likeVideoIdList failed")
 		}
 	}
