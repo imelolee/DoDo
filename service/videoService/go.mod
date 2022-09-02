@@ -3,6 +3,7 @@ module videoService
 go 1.18
 
 require (
+	commentService v0.0.0-00010101000000-000000000000
 	github.com/go-micro/plugins/v4/registry/consul v1.1.0
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/gogf/gf v1.16.9
@@ -66,6 +67,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sergi/go-diff v1.2.0 // indirect
+	github.com/streadway/amqp v1.0.0 // indirect
 	github.com/urfave/cli/v2 v2.11.2 // indirect
 	github.com/xanzy/ssh-agent v0.3.2 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect

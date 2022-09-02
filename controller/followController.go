@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/genleel/DoDo/model"
 	"github.com/genleel/DoDo/proto/followService"
 	"github.com/genleel/DoDo/utils"
@@ -32,17 +33,19 @@ type FollowersResp struct {
 
 // RelationAction 处理关注和取消关注请求。
 func RelationAction(c *gin.Context) {
-	userId, err := strconv.ParseInt(c.GetString("userId"), 10, 64)
-	toUserId, err := strconv.ParseInt(c.Query("to_user_id"), 10, 64)
-	actionType, err := strconv.ParseInt(c.Query("action_type"), 10, 64)
+	curUser, _ := c.Get("userId")
+	user_id := curUser.(*jwt.StandardClaims).Id
+	userId, _ := strconv.ParseInt(user_id, 10, 64)
+	toUserId, _ := strconv.ParseInt(c.Query("to_user_id"), 10, 64)
+	actionType, _ := strconv.ParseInt(c.Query("action_type"), 10, 64)
 	// fmt.Println(userId, toUserId, actionType)
 	// 传入参数格式有问题。
-	if nil != err || nil != err || nil != err || actionType < 1 || actionType > 2 {
+	if actionType < 1 || actionType > 2 {
 		fmt.Printf("fail")
 		c.JSON(http.StatusOK, RelationActionResp{
 			Response{
 				StatusCode: -1,
-				StatusMsg:  "用户id格式错误",
+				StatusMsg:  "actionType invalid.",
 			},
 		})
 		return
@@ -82,10 +85,11 @@ func GetFollowing(c *gin.Context) {
 		c.JSON(http.StatusOK, FollowingResp{
 			Response: Response{
 				StatusCode: -1,
-				StatusMsg:  "用户id格式错误。",
+				StatusMsg:  "userId invalid.",
 			},
 			UserList: nil,
 		})
+		fmt.Println("followController.GetFollowing err:", err)
 		return
 	}
 	// 正常获取关注列表
@@ -103,6 +107,7 @@ func GetFollowing(c *gin.Context) {
 			},
 			UserList: nil,
 		})
+		fmt.Println("followController.GetFollowing err:", err)
 		return
 	}
 	// 成功获取到关注列表。
@@ -126,10 +131,11 @@ func GetFollowers(c *gin.Context) {
 		c.JSON(http.StatusOK, FollowersResp{
 			Response: Response{
 				StatusCode: -1,
-				StatusMsg:  "用户id格式错误。",
+				StatusMsg:  "用户id格式错误.",
 			},
 			UserList: nil,
 		})
+		fmt.Println("followController.GetFollowers err:", err)
 		return
 	}
 	// 正常获取粉丝列表
@@ -147,6 +153,7 @@ func GetFollowers(c *gin.Context) {
 			},
 			UserList: nil,
 		})
+		fmt.Println("followController.GetFollowers err:", err)
 		return
 	}
 	// 成功获取到粉丝列表。

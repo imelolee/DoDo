@@ -2,15 +2,45 @@ package model
 
 import (
 	"errors"
+	"fmt"
+	"github.com/gogf/gf/util/gconv"
+	log "go-micro.dev/v4/logger"
 	"likeService/config"
 	pb "likeService/proto"
-	"log"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 	videoModel "videoService/model"
 )
+
+// 根据videoId,登录用户curId，添加视频对象到点赞列表空间
+func addFavouriteVideoList(videoId int64, curId int64, favoriteVideoList *[]*pb.Video, wg *sync.WaitGroup) {
+
+	defer wg.Done()
+	//调用videoService接口，GetVideo：根据videoId，当前用户id:curId，返回Video类型对象
+	video, err := videoModel.GetVideo(videoId, curId)
+	if err != nil {
+		log.Infof("videoModel.GetVideo err:", err)
+	}
+	var tmpVideo *pb.Video
+	gconv.Struct(video, &tmpVideo)
+
+	*favoriteVideoList = append(*favoriteVideoList, tmpVideo)
+}
+
+// 根据videoId，将该视频点赞数加入对应提前开辟好的空间内
+func addVideoLikeCount(videoId int64, videoLikeCountList *[]int64, wg *sync.WaitGroup) {
+	defer wg.Done()
+	//调用FavouriteCount：根据videoId,获取点赞数
+
+	count, err := FavouriteCount(videoId)
+	if err != nil {
+		fmt.Println("likeModel.FavouriteCount err:", err)
+		return
+	}
+	*videoLikeCountList = append(*videoLikeCountList, count)
+}
 
 // GetLikeVideoIdList 根据userId查询所属点赞全部videoId
 func GetLikeVideoIdList(userId int64) ([]int64, error) {
@@ -20,11 +50,11 @@ func GetLikeVideoIdList(userId int64) ([]int64, error) {
 	if err != nil {
 		//查询数据为0，返回空likeVideoIdList切片，以及返回无错误
 		if "record not found" == err.Error() {
-			log.Println("there are no likeVideoId")
+			log.Infof("there are no likeVideoId")
 			return likeVideoIdList, nil
 		} else {
 			//如果查询数据库失败，返回获取likeVideoIdList失败
-			log.Println(err.Error())
+			log.Infof(err.Error())
 			return likeVideoIdList, errors.New("get likeVideoIdList failed")
 		}
 	}
@@ -39,7 +69,7 @@ func GetLikeUserIdList(videoId int64) ([]int64, error) {
 		Pluck("user_id", &likeUserIdList).Error
 	//查询过程出现错误，返回默认值0，并输出错误信息
 	if err != nil {
-		log.Println(err.Error())
+		log.Infof(err.Error())
 		return nil, errors.New("get likeUserIdList failed")
 	} else {
 		//没查询到或者查询到结果，返回数量以及无报错
@@ -57,11 +87,11 @@ func GetLikeInfo(userId int64, videoId int64) (Like, error) {
 	if err != nil {
 		//查询数据为0，打印"can't find data"，返回空结构体，这时候就应该要考虑是否插入这条数据了
 		if "record not found" == err.Error() {
-			log.Println("can't find data")
+			log.Infof("can't find data")
 			return Like{}, nil
 		} else {
 			//如果查询数据库失败，返回获取likeInfo信息失败
-			log.Println(err.Error())
+			log.Infof(err.Error())
 			return likeInfo, errors.New("get likeInfo failed")
 		}
 	}
@@ -74,7 +104,7 @@ func InsertLike(likeData Like) error {
 	err := Db.Model(Like{}).Create(&likeData).Error
 	//如果有错误结果，返回插入失败
 	if err != nil {
-		log.Println(err.Error())
+		log.Infof(err.Error())
 		return errors.New("insert data fail")
 	}
 	return nil
@@ -87,7 +117,7 @@ func UpdateLike(userId int64, videoId int64, actionType int32) error {
 		Update("cancel", actionType).Error
 	//如果出现错误，返回更新数据库失败
 	if err != nil {
-		log.Println(err.Error())
+		log.Infof(err.Error())
 		return errors.New("update data fail")
 	}
 	//更新操作成功

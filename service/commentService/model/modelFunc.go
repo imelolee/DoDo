@@ -4,9 +4,8 @@ import (
 	"commentService/config"
 	pb "commentService/proto"
 	"errors"
-	"fmt"
 	"github.com/gogf/gf/util/gconv"
-	"log"
+	log "go-micro.dev/v4/logger"
 	"sort"
 	"strconv"
 	"sync"
@@ -14,18 +13,56 @@ import (
 	userModel "userService/model"
 )
 
+// 在redis中存储video_id对应的comment_id
+func insertRedisVideoCommentId(videoId string, commentId string) {
+	//在redis-RdbVCid中存储video_id对应的comment_id
+	_, err := RdbVCid.SAdd(Ctx, videoId, commentId).Result()
+	if err != nil { //若存储redis失败-有err，则直接删除key
+		log.Infof("insertRedisVideoCommentId err: ", err)
+		RdbVCid.Del(Ctx, videoId)
+		return
+	}
+	//在redis-RdbCVid中存储comment_id对应的video_id
+	_, err = RdbCVid.Set(Ctx, commentId, videoId, 0).Result()
+	if err != nil {
+		log.Infof("insertRedisVideoCommentId err: ", err)
+	}
+}
+
+// 此函数用于给一个评论赋值：评论信息+用户信息 填充
+func oneComment(comment *CommentInfo, com *Comment, userId int64) {
+	var wg sync.WaitGroup
+	wg.Add(1)
+	//根据评论用户id和当前用户id，查询评论用户信息
+
+	user, err := userModel.GetFeedUserByIdWithCurId(com.VideoId, com.UserId)
+	if err != nil {
+		log.Infof("userModel.GetFeedUserByIdWithCurId err:", err)
+		return
+	}
+	var userInfo userModel.FeedUser
+	gconv.Struct(user, &userInfo)
+
+	comment.Id = com.Id
+	comment.Content = com.CommentText
+	comment.CreateDate = com.CreateDate.Format(config.DateTime)
+	comment.UserInfo = userInfo
+	if err != nil {
+		log.Infof("oneComment err:", err) //函数返回提示错误信息
+	}
+	wg.Done()
+	wg.Wait()
+}
+
 // Count 使用video id 查询Comment数量
 func Count(videoId int64) (int64, error) {
-	log.Println("CommentDao-Count: running") //函数已运行
-	//Init()
 	var count int64
 	//数据库中查询评论数量
 	err := Db.Model(Comment{}).Where(map[string]interface{}{"video_id": videoId, "cancel": config.ValidComment}).Count(&count).Error
 	if err != nil {
-		log.Println("CommentDao-Count: return count failed") //函数返回提示错误信息
-		return -1, errors.New("find comments count failed")
+		log.Infof("CommentModel.Count err:", err)
+		return -1, err
 	}
-	log.Println("CommentDao-Count: return count success") //函数执行成功，返回正确信息
 	return count, nil
 }
 
@@ -34,7 +71,7 @@ func CommentIdList(videoId int64) ([]string, error) {
 	var commentIdList []string
 	err := Db.Model(Comment{}).Select("id").Where("video_id = ?", videoId).Find(&commentIdList).Error
 	if err != nil {
-		log.Println("CommentIdList:", err)
+		log.Infof("CommentModel.CommentIdList err:", err)
 		return nil, err
 	}
 	return commentIdList, nil
@@ -42,14 +79,12 @@ func CommentIdList(videoId int64) ([]string, error) {
 
 // InsertComment 发表评论
 func InsertComment(comment Comment) (Comment, error) {
-	log.Println("CommentDao-InsertComment: running") //函数已运行
 	//数据库中插入一条评论信息
 	err := Db.Model(Comment{}).Create(&comment).Error
 	if err != nil {
-		log.Println(err) //函数返回提示错误信息
-		return Comment{}, errors.New("create comment failed")
+		log.Infof("CommentModel.InsertComment err:", err)
+		return Comment{}, err
 	}
-	log.Println("CommentDao-InsertComment: return success") //函数执行成功，返回正确信息
 	return comment, nil
 }
 
@@ -60,16 +95,16 @@ func DeleteComment(id int64) error {
 	//先查询是否有此评论
 	result := Db.Model(Comment{}).Where(map[string]interface{}{"id": id, "cancel": config.ValidComment}).First(&commentInfo)
 	if result.RowsAffected == 0 { //查询到此评论数量为0则返回无此评论
-		log.Println("CommentDao-DeleteComment: return del comment is not exist") //函数返回提示错误信息
-		return errors.New("del comment is not exist")
+		log.Infof("CommentModel.DeleteComment err: Comment not exist.")
+		return errors.New("Comment not exist.")
 	}
 	//数据库中删除评论-更新评论状态为-1
 	err := Db.Model(Comment{}).Where("id = ?", id).Update("cancel", config.InvalidComment).Error
 	if err != nil {
-		log.Println("CommentDao-DeleteComment: return del comment failed") //函数返回提示错误信息
-		return errors.New("del comment failed")
+		log.Infof("CommentModel.DeleteComment err:", err)
+		return err
 	}
-	log.Println("CommentDao-DeleteComment: return success") //函数执行成功，返回正确信息
+
 	return nil
 }
 
@@ -81,21 +116,22 @@ func GetCommentList(videoId int64) ([]Comment, error) {
 		Order("create_date desc").Find(&commentList)
 	//若此视频没有评论信息，返回空列表，不报错
 	if result.RowsAffected == 0 {
-		log.Println("GetCommentList: return there are no comments") //函数返回提示无评论
+		log.Infof("CommentModel.GetCommentList err: No comment.") //函数返回提示无评论
 		return nil, nil
 	}
 	//若获取评论列表出错
 	if result.Error != nil {
-		log.Println(result.Error.Error())
-		log.Println("GetCommentList: return get comment list failed") //函数返回提示获取评论错误
-		return commentList, errors.New("get comment list failed")
+		log.Infof("CommentModel.GetCommentList err:", result.Error)
+		return commentList, result.Error
 	}
-	log.Println("GetCommentList: return commentList success") //函数执行成功，返回正确信息
 	return commentList, nil
 }
 
 // CountFromVideoId 使用video id 查询Comment数量
 func CountFromVideoId(id int64) (int64, error) {
+	if RdbVCid == nil {
+		InitRedis()
+	}
 	//先在缓存中查
 	cnt, err := RdbVCid.SCard(Ctx, strconv.FormatInt(id, 10)).Result()
 	if err != nil { //若查询缓存出错，则打印log
@@ -150,9 +186,9 @@ func Send(cmt *pb.Comment) (*pb.CommentInfo, error) {
 	}
 	//2.查询用户信息
 
-	user, err := userModel.GetFeedUserByIdWithCurId(cmt.VideoId, cmt.UserId)
+	user, err := userModel.GetFeedUserByIdWithCurId(cmt.UserId, cmt.UserId)
 	if err != nil {
-		fmt.Println("userModel.GetFeedUserByIdWithCurId err:", err)
+		log.Infof("userModel.GetFeedUserByIdWithCurId err:", err)
 		return &pb.CommentInfo{}, err
 	}
 
@@ -175,7 +211,6 @@ func Send(cmt *pb.Comment) (*pb.CommentInfo, error) {
 	gconv.Struct(commentData, &comment)
 
 	//返回结果
-
 	return &comment, nil
 }
 

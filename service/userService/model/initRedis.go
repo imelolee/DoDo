@@ -2,7 +2,6 @@ package model
 
 import (
 	"context"
-	"fmt"
 	"github.com/go-redis/redis/v8"
 )
 
@@ -39,5 +38,4 @@ func InitRedis() {
 		Addr: "127.0.0.1:6379",
 		DB:   3, // 当前用户是否关注了自己粉丝信息存入 DB1.
 	})
-	fmt.Println("Redis Init Success.")
 }
